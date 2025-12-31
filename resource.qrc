@@ -1,0 +1,11 @@
+<RCC>
+  <qresource prefix="tittle">
+    <file>icons/excel.png</file>
+    <file>icons/folder.png</file>
+    <file>icons/close.png</file>
+    <file>icons/close_hover.png</file>
+    <file>icons/maximize.png</file>
+    <file>icons/minimize.png</file>
+    <file>icons/reduction.png</file>
+  </qresource>
+</RCC>
