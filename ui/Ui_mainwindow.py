@@ -24,7 +24,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(932, 660)
+        MainWindow.resize(903, 600)
         MainWindow.setMinimumSize(QSize(900, 600))
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
@@ -32,6 +32,7 @@ class Ui_MainWindow(object):
 "	border-radius: 20px;\n"
 "}")
         self.verticalLayout = QVBoxLayout(self.centralwidget)
+        self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.widget = QWidget(self.centralwidget)
@@ -163,11 +164,9 @@ class Ui_MainWindow(object):
 "}\n"
 "QPushButton:hover{		\n"
 "	background-color: rgb(232, 17, 35);\n"
-"	border-top-right-radius: 10px;\n"
 "}\n"
 "QPushButton:pressed{\n"
 "	background-color: rgba(232, 17, 35, 0.8);\n"
-"	border-top-right-radius: 10px;\n"
 "}")
         icon2 = QIcon()
         icon2.addFile(u":/tittle/icons/close.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)

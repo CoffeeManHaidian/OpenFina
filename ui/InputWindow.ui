@@ -1,26 +1,448 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>InuputWindow</class>
+ <widget class="QWidget" name="InuputWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>880</width>
-    <height>601</height>
+    <width>667</width>
+    <height>406</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>凭证录入</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
    <item>
-    <widget class="QTreeWidget" name="treeWidget">
-     <column>
-      <property name="text">
-       <string notr="true">1</string>
+    <widget class="QWidget" name="contentBox" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+       <horstretch>5</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <property name="spacing">
+       <number>0</number>
       </property>
-     </column>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QWidget" name="widget" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>20</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>20</height>
+         </size>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QPushButton" name="btn_assets">
+           <property name="text">
+            <string>资产</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_debt">
+           <property name="text">
+            <string>负债</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton">
+           <property name="text">
+            <string>权益</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_cost">
+           <property name="text">
+            <string>成本</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_porfitnloss">
+           <property name="text">
+            <string>损益</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QStackedWidget" name="stackedWidget">
+        <property name="currentIndex">
+         <number>0</number>
+        </property>
+        <widget class="QWidget" name="WidgetAsset">
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QTreeWidget" name="tree_Itemlist">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>5</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <column>
+             <property name="text">
+              <string>资产</string>
+             </property>
+            </column>
+            <item>
+             <property name="text">
+              <string>库存资金</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>银行存款</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>应收票据</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>应收账款</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>坏账准备</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>预付账款</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>其他应收款</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>存货</string>
+             </property>
+             <item>
+              <property name="text">
+               <string>原材料</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>产成品</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>包装物</string>
+              </property>
+             </item>
+            </item>
+            <item>
+             <property name="text">
+              <string>待摊费用</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>固定资产</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>累计折旧</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>短期借款</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>应付票据</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>应付账款</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>预收账款</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>其他应付款</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>应付工资</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>应付福利费</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>应缴税金</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>预提费用</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>销售折让</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="WidgetDebt">
+         <layout class="QVBoxLayout" name="verticalLayout_4">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QListWidget" name="listWidget">
+            <item>
+             <property name="text">
+              <string>负债</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="leftBox" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>1</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>100</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>100</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QWidget{
+	background-color: rgb(255, 255, 255);
+}</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="btn_confirm">
+        <property name="text">
+         <string>确定</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_cancel">
+        <property name="text">
+         <string>取消</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>200</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_search">
+        <property name="styleSheet">
+         <string notr="true">#btn_search{
+	color: rgb(0, 0, 0);
+}
+QPushButton:hover{		
+	background-color: rgba(221, 221, 221, 1);
+}
+QPushButton:pressed{
+	background-color: rgba(221, 221, 221, 0.8);
+}</string>
+        </property>
+        <property name="text">
+         <string>查找</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_new">
+        <property name="text">
+         <string>新增</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_revise">
+        <property name="text">
+         <string>修改</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_delete">
+        <property name="text">
+         <string>删除</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="verticalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>100</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_copy">
+        <property name="text">
+         <string>复制</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_budget">
+        <property name="text">
+         <string>预算</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_refresh">
+        <property name="text">
+         <string>刷新</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </item>
   </layout>

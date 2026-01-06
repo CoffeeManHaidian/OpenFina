@@ -1,2 +1,4 @@
-./icons/icon.ai
+icons/icon.ai
 *.xlsx
+ui/test.py
+*.pyc

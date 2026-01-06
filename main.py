@@ -5,6 +5,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import Qt, QIcon
 from PySide6.QtCore import QSize
 
+from InputWindow import InputWindow
+from ui.certificate import Certification
 
 class MyWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -88,6 +90,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.btn_certification.clicked.connect(lambda:self.goto_detailfunc_page(1))
         self.btn_ledger.clicked.connect(lambda:self.goto_detailfunc_page(2))
 
+        self.btn_input.clicked.connect(self.input_button_clicked)
+
     def goto_subfunc_page(self, number):
         """
         切换子功能窗口页面
@@ -103,6 +107,14 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         return:
         """
         self.wgt_DetailFunc.setCurrentIndex(number)
+
+    def input_button_clicked(self):
+        """
+        打开凭证录入窗口
+        """
+        # if not hasattr(self, 'input_window') or not self.input_window:
+        self.input_window = Certification()
+        self.input_window.show()
 
 
 if __name__ == "__main__":

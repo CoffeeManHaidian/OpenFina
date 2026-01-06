@@ -28,6 +28,7 @@ class Ui_Form(object):
         self.label.setObjectName(u"label")
         self.label.setGeometry(QRect(10, 40, 54, 16))
         self.label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        self.label.setStyleSheet(u"color: rgb(85, 170, 0);")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label_2 = QLabel(Form)
         self.label_2.setObjectName(u"label_2")

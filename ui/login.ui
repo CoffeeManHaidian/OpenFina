@@ -28,6 +28,9 @@
    <property name="layoutDirection">
     <enum>Qt::LayoutDirection::LeftToRight</enum>
    </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(85, 170, 0);</string>
+   </property>
    <property name="text">
     <string>账号</string>
    </property>
