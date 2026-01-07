@@ -2,18 +2,22 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
-                                QLabel, QTableWidgetItem, QHeaderView, QPushButton)
+from PySide6.QtWidgets import (QApplication, QHBoxLayout, QHeaderView, QPushButton,
+    QSizePolicy, QSpacerItem, QTableWidget, QTableWidgetItem,
+    QVBoxLayout, QWidget, QLabel, QComboBox)
 from PySide6.QtCore import Qt, QDate, QSize
-from PySide6.QtGui import QFont, QColor
+from PySide6.QtGui import QFont, QColor, QShortcut, QKeySequence
 
 from ui.calendar import DatePickerDialog
 from ui.clickableTabel import ClickableLabel
+from lib.voucher import VoucherManager
+# from ui.
 
 
 class Certification(QWidget):
     def __init__(self):
         super().__init__()
+        self.voucherManager = VoucherManager()
         self.setupUI()
         self.init_slot()
 
@@ -21,9 +25,16 @@ class Certification(QWidget):
         """设置表格UI"""
         # title and size
         self.setWindowTitle("记账凭证")
-        self.resize(800, 600)
+        self.resize(900, 600)
+        # 移除最大化按钮标志，只保留最小化和关闭按钮
+        # self.setWindowFlags(Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
 
-        # 标题栏
+        self.mainLayout = QVBoxLayout()
+
+        ## 标题栏
+        self.titleLayout = QVBoxLayout()
+        self.labelLayout = QHBoxLayout()
+
         self.title = QLabel("通用记账凭证")
         self.title.setStyleSheet("""
             QLabel {
@@ -35,12 +46,11 @@ class Certification(QWidget):
                 qproperty-alignment: AlignCenter;
             }
         """)
+        self.titleLayout.addWidget(self.title)
 
-        # 选择日期
-        self.date = QDate.currentDate()
-        self.date_label = ClickableLabel()
-        self.update_date_label()
-        self.date_label.setStyleSheet("""
+        # 业务日期
+        self.dateLabel = QLabel("业务日期 ")
+        self.dateLabel.setStyleSheet("""
             QLabel {
                 font-family: "宋体";
                 font-size: 16px;
@@ -48,7 +58,51 @@ class Certification(QWidget):
                 qproperty-alignment: AlignCenter;
             }
         """)
-        self.date_label.clicked.connect(self.show_date_picker)
+        self.date = QDate.currentDate()
+        self.dateBtnLabel = ClickableLabel()
+        self.update_date_label(self.date, self.dateBtnLabel)
+        self.dateBtnLabel.setStyleSheet("""
+            QLabel {
+                font-family: "宋体";
+                font-size: 16px;
+                color: rgb(0, 128, 0);
+                qproperty-alignment: AlignCenter;
+            }
+        """)
+
+        # 凭证日期
+        self.datetime = QDate.currentDate()
+        self.datetimeBtnLabel = ClickableLabel()
+        self.update_date_label(self.datetime, self.datetimeBtnLabel)
+        self.datetimeBtnLabel.setStyleSheet("""
+            QLabel {
+                font-family: "宋体";
+                font-size: 16px;
+                color: rgb(0, 128, 0);
+                qproperty-alignment: AlignCenter;
+            }
+        """)
+        
+        # 标题布局
+        self.labelLayout.addWidget(self.dateLabel)
+        self.labelLayout.addWidget(self.dateBtnLabel)
+        titleSpacer1 = QSpacerItem(1400, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.labelLayout.addSpacerItem(titleSpacer1)
+        self.labelLayout.addWidget(self.datetimeBtnLabel)
+        titleSpacer2 = QSpacerItem(1400, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.labelLayout.addSpacerItem(titleSpacer2)
+
+        # 凭证号 
+        self.voucher_lb = QLabel("凭证号")
+        self.labelLayout.addWidget(self.voucher_lb)
+        self.voucher_combo = QComboBox()
+        self.voucher_combo.setMinimumSize(100, 30)
+        self.voucher_combo.setMaximumSize(100, 30)
+        self.voucher_combo.setEditable(True)
+        self.voucher_combo.addItems(self.voucherManager.get_voucher_history())
+        self.labelLayout.addWidget(self.voucher_combo)
+
+        self.titleLayout.addLayout(self.labelLayout)
 
         ## 设置表头
         self.table = QTableWidget()
@@ -58,10 +112,10 @@ class Certification(QWidget):
             ["摘要","科目","借方金额","\u2713","贷方金额","\u2713"]
         )
 
-        # 设置默认行高为 40 像素
+        ## 设置默认行高为 40 像素
         self.table.verticalHeader().setDefaultSectionSize(40)
 
-        # 为第5列和第7列（索引4和6）在每一数据行（不含合计行）添加复选框
+        ## 为第5列和第7列（索引4和6）在每一数据行（不含合计行）添加复选框
         for r in range(self.table.rowCount() - 1):
             left_cb = QTableWidgetItem()
             left_cb.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
@@ -75,9 +129,13 @@ class Certification(QWidget):
 
         self.update_totals(0.0, 0.0)
 
-        # 设置表头样式
+        ## 设置列宽
         # self.table.setItem(6, 0, QTableWidgetItem("合计"))
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(0, 200)
+        self.table.setColumnWidth(1, 200)
+        self.table.setColumnWidth(2, 100)
+        self.table.setColumnWidth(3, 100)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
 
@@ -86,18 +144,20 @@ class Certification(QWidget):
         # self.table.setShowGrid(True)
         # self.table.verticalHeader().setVisible(False)
 
-        # 设置工具栏
+        ## 设置工具栏
         self.topWidget = QWidget()
-        self.topWidget.setMinimumSize(QSize(200, 40))
+        self.topLayout = QHBoxLayout()
+        self.topWidget.setMinimumSize(QSize(0, 60))
+        # self.topWidget.setMinimumSize(QSize(200, 40))
 
         self.btnSave = QPushButton(self.topWidget)
         self.btnSave.setObjectName("保存")
-        self.btnSave.setMinimumSize(QSize(16, 16))
+        self.btnSave.setText("保存")
+        self.btnSave.setMinimumSize(QSize(40, 40))
         self.btnSave.setStyleSheet("""
             QPushButton {
                 background-color: rgb(255, 255, 255);
                 border:none;
-                text-align:left;
             }
             QPushButton:hover {
                 background-color: rgba(221, 221, 221, 1);
@@ -106,15 +166,16 @@ class Certification(QWidget):
                 background-color: rgba(221, 221, 221, 0.8);
             }
         """)
+        self.topLayout.addWidget(self.btnSave)
 
         self.btnCancel = QPushButton(self.topWidget)
-        self.btnSave.setObjectName("取消")
-        self.btnCancel.setMinimumSize(QSize(16, 16))
+        self.btnCancel.setObjectName("取消")
+        self.btnCancel.setText("取消")
+        self.btnCancel.setMinimumSize(QSize(40, 40))
         self.btnCancel.setStyleSheet("""
             QPushButton {
                 background-color: rgb(255, 255, 255);
                 border:none;
-                text-align:left;
             }
             QPushButton:hover {
                 background-color: rgba(221, 221, 221, 1);
@@ -123,14 +184,12 @@ class Certification(QWidget):
                 background-color: rgba(221, 221, 221, 0.8);
             }
         """)
-        self.topLayout = QHBoxLayout()
-        self.topLayout.addWidget(self.topWidget)
+        self.topLayout.addWidget(self.btnCancel)  
         
-        # 布局
-        self.mainLayout = QVBoxLayout()
-        self.titleLayout = QVBoxLayout()
-        self.titleLayout.addWidget(self.title)
-        self.titleLayout.addWidget(self.date_label)
+        topSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.topLayout.addItem(topSpacer)
+
+        ## 布局
         self.mainLayout.addLayout(self.topLayout) 
         self.mainLayout.addLayout(self.titleLayout)
         self.mainLayout.addSpacing(20)
@@ -140,7 +199,10 @@ class Certification(QWidget):
 
     def init_slot(self):
         """绑定信号与槽"""
+        self.dateBtnLabel.clicked.connect(self.show_date_picker)
+        self.datetimeBtnLabel.clicked.connect(self.show_datetime_picker)
         self.table.itemSelectionChanged.connect(self.calculate_totals)
+        self.voucher_combo.currentTextChanged.connect(lambda: print(self.voucher_combo.currentText()))
 
     def calculate_totals(self):
         """计算借方和贷方金额合计"""
@@ -199,20 +261,35 @@ class Certification(QWidget):
         note_item.setFlags(note_item.flags() & ~Qt.ItemIsEditable)
         self.table.setItem(last_row, 5, note_item)
 
-    def update_date_label(self):
-        """更新日期标签的显示"""
-        date_str = self.date.toString("yyyy年MM月dd日")
-        self.date_label.setText(f"{date_str}")
+    def update_date_label(self, date, label):
+        """更新凭证日期标签的显示"""
+        date_str = date.toString("yyyy年MM月dd日")
+        label.setText(f"{date_str}")
 
     def show_date_picker(self):
-        """选择日期"""
-        dateDialog = DatePickerDialog(self.date, self)
+        """选择业务日期"""
+        dateDialog = DatePickerDialog(self.datetime, self.dateBtnLabel)
+        dateDialog.date_selected.connect(self.select_date)
+        dateDialog.exec()
+    
+    def show_datetime_picker(self):
+        """选择业务日期"""
+        dateDialog = DatePickerDialog(self.datetime, self.datetimeBtnLabel)
         dateDialog.date_selected.connect(self.select_date)
         dateDialog.exec()
 
-    def select_date(self, date):
-        self.date = date
-        self.update_date_label()
+    def select_date(self, date, label):
+        """选择日期并更新"""
+        if label == self.dateBtnLabel:
+            self.date = date
+            self.update_date_label(date, self.dateBtnLabel)
+        elif label == self.datetimeBtnLabel:
+            self.datetime = date
+            self.update_date_label(date, self.datetimeBtnLabel)
+
+    def select_subject(self):
+        """选择会计科目"""
+
 
 
 if __name__ == "__main__":

@@ -9,10 +9,11 @@ from PySide6.QtCore import Qt, Signal, QDate
 
 class DatePickerDialog(QDialog):
     """日期选择对话框"""
-    date_selected = Signal(QDate)  # 日期选择信号
+    date_selected = Signal(QDate, QLabel)  # 日期选择信号
     
-    def __init__(self, current_date=None, parent=None):
-        super().__init__(parent)
+    def __init__(self, current_date=None, Label=None):
+        super().__init__()
+        self.Label = Label
         self.setWindowTitle("选择日期")
         self.resize(350, 300)
         
@@ -51,7 +52,7 @@ class DatePickerDialog(QDialog):
     def accept(self):
         """确认按钮点击事件"""
         selected_date = self.calendar.selectedDate()
-        self.date_selected.emit(selected_date)
+        self.date_selected.emit(selected_date, self.Label)
         
         super().accept()
 

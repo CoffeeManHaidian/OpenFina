@@ -19,11 +19,7 @@ from PySide6.QtWidgets import (QApplication, QHBoxLayout, QHeaderView, QPushButt
     QSizePolicy, QSpacerItem, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget)
 
-class Ui_Form(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-
+class Ui_Form(object):
     def setupUi(self, Form):
         if not Form.objectName():
             Form.setObjectName(u"Form")
@@ -102,10 +98,3 @@ class Ui_Form(QWidget):
         self.pushButton_2.setText(QCoreApplication.translate("Form", u"\u53d6\u6d88", None))
     # retranslateUi
 
-
-if __name__ == "__main__":
-    app = QApplication([])
-    window = Ui_Form()
-
-    window.show()
-    app.exec()
