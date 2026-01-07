@@ -112,9 +112,13 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         """
         打开凭证录入窗口
         """
-        # if not hasattr(self, 'input_window') or not self.input_window:
-        self.input_window = Certification()
-        self.input_window.show()
+        # 如果窗口已打开，则置顶并激活
+        if hasattr(self, "inputWindow") and self.inputWindow.isVisible():
+            self.inputWindow.raise_()
+            self.inputWindow.activateWindow()
+
+        self.inputWindow = Certification()
+        self.inputWindow.show()
 
 
 if __name__ == "__main__":

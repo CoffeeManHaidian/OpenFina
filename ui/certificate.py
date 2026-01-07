@@ -11,6 +11,7 @@ from PySide6.QtGui import QFont, QColor, QShortcut, QKeySequence
 from ui.calendar import DatePickerDialog
 from ui.clickableTabel import ClickableLabel
 from lib.voucher import VoucherManager
+from ui.subject import SubjectWindow
 # from ui.
 
 
@@ -204,6 +205,10 @@ class Certification(QWidget):
         self.table.itemSelectionChanged.connect(self.calculate_totals)
         self.voucher_combo.currentTextChanged.connect(lambda: print(self.voucher_combo.currentText()))
 
+        # F2 打开会计科目选择窗口（全局快捷键，父对象为当前窗口）
+        self.subShortcut = QShortcut(QKeySequence(Qt.Key_F2), self)
+        self.subShortcut.activated.connect(self.select_subject)
+
     def calculate_totals(self):
         """计算借方和贷方金额合计"""
         debit_total = 0.0       # 借方金额
@@ -288,8 +293,18 @@ class Certification(QWidget):
             self.update_date_label(date, self.datetimeBtnLabel)
 
     def select_subject(self):
-        """选择会计科目"""
+        """选择会计科目——按 F2 打开，会复用已打开窗口并置顶"""
+        # 检查当前列是否为第二列且表格有焦点
+        if self.table.currentColumn() == 1 and self.table.hasFocus():
+            # 如果窗口已打开，则置顶并激活
+            if hasattr(self, "subjectWidget") and self.subjectWidget.isVisible():
+                self.subjectWidget.raise_()
+                self.subjectWidget.activateWindow()
+                return
 
+            # 否则新建并显示，窗口关闭后自动删除实例
+            self.subjectWidget = SubjectWindow()
+            self.subjectWidget.show()
 
 
 if __name__ == "__main__":
