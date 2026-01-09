@@ -34,12 +34,27 @@ class Certification(QWidget):
         # 移除最大化按钮标志，只保留最小化和关闭按钮
         self.setWindowFlags(Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
 
-        self.mainLayout = QVBoxLayout()
+        mainLayout = QVBoxLayout()
+        mainLayout.setSpacing(0)
 
         ## 标题栏
-        self.titleLayout = QVBoxLayout()
-        self.labelLayout = QHBoxLayout()
+        self.titleWidget = QWidget()
+        titleLayout = QVBoxLayout()
+        titleLayout.setSpacing(0)
+        # titleLayout.setContentsMargins(0, 0, 0, 0)
+        labelLayout = QHBoxLayout()
+        labelLayout.setSpacing(0)
+        # labelLayout.setContentsMargins(0, 0, 0, 0)
+        self.titleWidget.setMinimumSize(QSize(700,100))
+        self.titleWidget.setMaximumSize(QSize(16777215,100))
+        self.titleWidget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.titleWidget.setStyleSheet("""
+            QWidget {
+            background-color: rgb(255, 255, 255);
+        }""")
+        self.titleWidget.setLayout(titleLayout)
 
+        # 标题
         self.title = QLabel("通用记账凭证")
         self.title.setStyleSheet("""
             QLabel {
@@ -51,7 +66,11 @@ class Certification(QWidget):
                 qproperty-alignment: AlignCenter;
             }
         """)
-        self.titleLayout.addWidget(self.title)
+        titleSpacer1 = QSpacerItem(1400, 100, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        titleLayout.addSpacerItem(titleSpacer1)
+        titleLayout.addWidget(self.title)
+        titleSpacer2 = QSpacerItem(1400, 100, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        titleLayout.addSpacerItem(titleSpacer2)
 
         # 业务日期
         self.dateLabel = QLabel("业务日期 ")
@@ -89,25 +108,52 @@ class Certification(QWidget):
         """)
         
         # 标题布局
-        self.labelLayout.addWidget(self.dateLabel)
-        self.labelLayout.addWidget(self.dateBtnLabel)
-        titleSpacer1 = QSpacerItem(1400, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        self.labelLayout.addSpacerItem(titleSpacer1)
-        self.labelLayout.addWidget(self.datetimeBtnLabel)
-        titleSpacer2 = QSpacerItem(1400, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        self.labelLayout.addSpacerItem(titleSpacer2)
+        labelLayout.addWidget(self.dateLabel)
+        labelLayout.addWidget(self.dateBtnLabel)
+        labelSpacer1 = QSpacerItem(1200, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        labelLayout.addSpacerItem(labelSpacer1)
+        labelLayout.addWidget(self.datetimeBtnLabel)
+        labelSpacer2 = QSpacerItem(1400, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        labelLayout.addSpacerItem(labelSpacer2)
 
-        # 凭证号 
-        self.voucher_lb = QLabel("凭证号")
-        self.labelLayout.addWidget(self.voucher_lb)
-        self.voucher_combo = QComboBox()
-        self.voucher_combo.setMinimumSize(100, 30)
-        self.voucher_combo.setMaximumSize(100, 30)
-        self.voucher_combo.setEditable(True)
-        self.voucher_combo.addItems(self.voucherManager.get_voucher_history())
-        self.labelLayout.addWidget(self.voucher_combo)
+        ## 凭证信息
+        self.voucherWidget = QWidget()
+        voucherLayout = QVBoxLayout()
+        self.voucherWidget.setMinimumSize(QSize(200,100))
+        self.voucherWidget.setMaximumSize(QSize(200,100))
+        self.voucherWidget.setStyleSheet("""
+            QWidget {
+                background-color: rgb(255,255,255);
+            }
+            """)
+        self.voucherWidget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.voucherWidget.setLayout(voucherLayout)
+        
+        # 凭证字
+        typeLayout = QHBoxLayout()
+        self.type_lb = QLabel("凭证字")
+        typeLayout.addWidget(self.type_lb)
+        self.type_combo = QComboBox()
+        self.type_combo.setMinimumSize(100, 30)
+        self.type_combo.setMaximumSize(100, 30)
+        self.type_combo.setEditable(True)
+        self.type_combo.addItems(["记账凭证","收款凭证","支付凭证","转账凭证"])
+        typeLayout.addWidget(self.type_combo)
 
-        self.titleLayout.addLayout(self.labelLayout)
+        # 凭证号
+        numberLayout = QHBoxLayout()
+        self.number_lb = QLabel("凭证号")
+        numberLayout.addWidget(self.number_lb)
+        self.number_combo = QComboBox()
+        self.number_combo.setMinimumSize(100, 30)
+        self.number_combo.setMaximumSize(100, 30)
+        self.number_combo.setEditable(True)
+        self.number_combo.addItems(self.voucherManager.get_voucher_history())
+        numberLayout.addWidget(self.number_combo)
+
+        voucherLayout.addLayout(typeLayout)
+        voucherLayout.addLayout(numberLayout)
+        titleLayout.addLayout(labelLayout)
 
         ## 设置表头
         self.table = QTableWidget()
@@ -157,7 +203,7 @@ class Certification(QWidget):
 
         ## 设置工具栏
         self.topWidget = QWidget()
-        self.topLayout = QHBoxLayout()
+        topLayout = QHBoxLayout()
         self.topWidget.setMinimumSize(QSize(0, 60))
         # self.topWidget.setMinimumSize(QSize(200, 40))
 
@@ -177,7 +223,7 @@ class Certification(QWidget):
                 background-color: rgba(221, 221, 221, 0.8);
             }
         """)
-        self.topLayout.addWidget(self.btnSave)
+        topLayout.addWidget(self.btnSave)
 
         self.btnCancel = QPushButton(self.topWidget)
         self.btnCancel.setObjectName("取消")
@@ -195,18 +241,23 @@ class Certification(QWidget):
                 background-color: rgba(221, 221, 221, 0.8);
             }
         """)
-        self.topLayout.addWidget(self.btnCancel)  
+        topLayout.addWidget(self.btnCancel)  
         
         topSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        self.topLayout.addItem(topSpacer)
+        topLayout.addItem(topSpacer)
 
         ## 布局
-        self.mainLayout.addLayout(self.topLayout) 
-        self.mainLayout.addLayout(self.titleLayout)
-        self.mainLayout.addSpacing(20)
-        self.mainLayout.addWidget(self.table)     
+        upperLayout = QHBoxLayout()
+        upperLayout.setSpacing(0)
+        upperLayout.addWidget(self.titleWidget)
+        upperLayout.addWidget(self.voucherWidget)
 
-        self.setLayout(self.mainLayout)
+        mainLayout.addLayout(topLayout) 
+        mainLayout.addSpacing(10)
+        mainLayout.addLayout(upperLayout)
+        mainLayout.addWidget(self.table)     
+
+        self.setLayout(mainLayout)
 
     def init_slot(self):
         """绑定信号与槽"""
@@ -346,7 +397,7 @@ class Certification(QWidget):
 
     def save_voucher(self):
         """保存凭证"""
-        self.voucher_no = self.voucher_combo.currentText()
+        self.voucher_no = self.number_combo.currentText()
         voucher_data = {
             "voucher_no": f"{self.voucher_no:0>6}",
             "date": self.date.toString("yyyy-MM-dd"),
@@ -362,7 +413,7 @@ class Certification(QWidget):
         self.voucherManager.save_voucher(voucher_data)
 
         next_no = self.voucherManager.get_next_voucher_no()
-        self.voucher_combo.setEditText(next_no)
+        self.number_combo.setEditText(next_no)
 
 
 if __name__ == "__main__":
