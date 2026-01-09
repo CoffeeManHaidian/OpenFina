@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import (QWidget, QStackedWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QApplication)
+import json
+from PySide6.QtWidgets import (QWidget, QLineEdit, QVBoxLayout, QHBoxLayout,
+    QPushButton, QLabel, QTreeWidgetItem, QTreeWidget, QApplication)
 from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QFont, QColor
 
@@ -7,74 +8,147 @@ from PySide6.QtGui import QFont, QColor
 class SubjectWindow(QWidget):
     subFunc = Signal(str, str)
 
-    def __init__(self):
+    def __init__(self, json_path="data\subject.json"):
         super().__init__()
+        self.json_path = json_path
         self.setupUi()
+        self.load_tree()
         self.init_slot()
 
     def setupUi(self):
         self.setWindowTitle("会计科目")
-        self.resize(800, 600)
+        self.resize(500, 600)
+        # 移除最大化按钮标志，只保留最小化和关闭按钮
+        self.setWindowFlags(Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
 
-        mainLayout = QVBoxLayout(self)
-
-        ## 科目
-        self.topBox = QWidget()
-        topLayout = QHBoxLayout(self.topBox)
-        self.btnProperty = QPushButton("资产")
-        self.btnLiabity = QPushButton("负债")
-        self.btnEquity = QPushButton("权益")
-        self.btnCost = QPushButton("成本")
-        self.btnProfit = QPushButton("损益")
-        topLayout.addWidget(self.btnProperty)
-        topLayout.addWidget(self.btnLiabity)
-        topLayout.addWidget(self.btnEquity)
-        topLayout.addWidget(self.btnCost)
-        topLayout.addWidget(self.btnProfit)
-
-        ## 子细目     
-        # 资产
-        self.propertyWidget = QWidget()
-        propertyLayout = QVBoxLayout(self.propertyWidget)
-
-        # 负债
-        self.liabityWidget = QWidget()
-        liabityLayout = QVBoxLayout(self.liabityWidget)
-
-        # 权益
-        self.equityWidget = QWidget()
-        equityLayout = QVBoxLayout(self.equityWidget)
-
-        # 成本
-        self.costWidget = QWidget()
-        costLayout = QVBoxLayout(self.costWidget)
-
-        # 损益
-        self.profitWidget = QWidget()
-        profitLayout = QVBoxLayout(self.profitWidget)
-
-        self.subStack = QStackedWidget()
-        self.subStack.addWidget(self.propertyWidget)
-        self.subStack.addWidget(self.liabityWidget)
-        self.subStack.addWidget(self.equityWidget)
-        self.subStack.addWidget(self.costWidget)
-        self.subStack.addWidget(self.profitWidget)
+        mainLayout = QVBoxLayout()
         
-        mainLayout.addWidget(self.topBox)
-        mainLayout.addWidget(self.subStack)
+        ## 搜索栏
+        # 输入框
+        searchLayout = QHBoxLayout()
+        self.searchInput = QLineEdit()
+        self.searchInput.setPlaceholderText("搜索科目...")
+        self.searchInput.textChanged.connect(self.filter_items)
+        # 清除按钮
+        self.clearButton = QPushButton()
+        self.clearButton.setText("清除")
+
+        ## Tree
+        self.subjectTree = QTreeWidget()
+        self.subjectTree.setHeaderLabels(["科目"])
+        self.subjectTree.setColumnCount(1)
+
+        ## ButtonBox
+        buttonLayout = QHBoxLayout()
+        self.OkBtn = QPushButton("确认")
+        self.CancelBtn = QPushButton("取消")
+
+        ## Layout
+        # search
+        searchLayout.addWidget(self.searchInput)
+        searchLayout.addWidget(self.clearButton)
+        # buttonBox
+        buttonLayout.addWidget(self.OkBtn)
+        buttonLayout.addWidget(self.CancelBtn)
+        # main
+        mainLayout.addLayout(buttonLayout)
+        mainLayout.addLayout(searchLayout)
+        mainLayout.addWidget(self.subjectTree)
+
         self.setLayout(mainLayout)
 
     def init_slot(self):
         """绑定信号与槽"""
-        self.btnProperty.clicked.connect(lambda: self.goto_subFunc_page(0))
-        self.btnLiabity.clicked.connect(lambda: self.goto_subFunc_page(1))
-        self.btnEquity.clicked.connect(lambda: self.goto_subFunc_page(2))
-        self.btnCost.clicked.connect(lambda: self.goto_subFunc_page(3))
-        self.btnProfit.clicked.connect(lambda: self.goto_subFunc_page(4))
+        # 确认取消
+        self.clearButton.clicked.connect(self.clear_search)
+        self.OkBtn.clicked.connect(self.accept)
+        self.CancelBtn.clicked.connect(self.close)
+    
+    def load_tree(self):
+        """加载树形图"""
+        with open(self.json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        self.subjectTree.clear()
+        self.all_items = []
+        
+        def add_item(parent, key, value, depth=0):
+            item = QTreeWidgetItem(parent, [key])
+            item.setData(0, Qt.UserRole, depth)  # 存储深度信息
+            
+            # 添加到搜索列表
+            self.all_items.append({
+                'item': item,
+                'text': key,
+                'depth': depth
+            })
+            
+            if value:
+                for child_key, child_value in value.items():
+                    add_item(item, child_key, child_value, depth + 1)
+        
+        for category, items in data.items():
+            category_item = QTreeWidgetItem(self.subjectTree, [category])
+            category_item.setExpanded(True)
+            
+            # 添加到搜索列表
+            self.all_items.append({
+                'item': category_item,
+                'text': category,
+                'depth': 0
+            })
+            
+            for key, value in items.items():
+                add_item(category_item, key, value, 1)
+    
+    def filter_items(self, search_text):
+        """根据搜索文本过滤项目"""
+        # if not search_text:
+        #     # 显示所有项目
+        #     for item_info in self.all_items:
+        #         item_info['item'].setHidden(False)
+        #         # 确保父项目展开以显示子项目
+        #         parent = item_info['item'].parent()
+        #         if parent:
+        #             parent.setExpanded(True)
+        #     return
+        
+        search_text = search_text.lower()
+        
+        # 首先隐藏所有项目
+        for item_info in self.all_items:
+            item_info['item'].setHidden(True)
+        
+        # 显示匹配的项目及其父项目
+        for item_info in self.all_items:
+            if search_text in item_info['text'].lower():
+                item = item_info['item']
+                item.setHidden(False)
+                
+                # 显示所有父项目
+                parent = item.parent()
+                while parent:
+                    parent.setHidden(False)
+                    parent.setExpanded(True)
+                    parent = parent.parent()
 
-    def goto_subFunc_page(self, number):
-        """切换子功能窗口页面"""
-        self.subStack.setCurrentIndex(number)
+    def clear_search(self):
+        """清除搜索"""
+        self.search_input.clear()
+        for item_info in self.all_items:
+            item_info['item'].setHidden(False)
+
+    def accept(self):
+        """确认按钮点击事件"""
+        item = self.subjectTree.currentItem()
+        p = item.parent()
+        while p:
+            parent = p
+            p = parent.parent()
+        
+        self.subFunc.emit(parent.text(0), item.text(0))
+        self.close()
+        # print(parent.text(0), item.text(0))
 
 
 if __name__ == "__main__":

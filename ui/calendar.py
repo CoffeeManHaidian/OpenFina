@@ -14,6 +14,11 @@ class DatePickerDialog(QDialog):
     def __init__(self, current_date=None, Label=None):
         super().__init__()
         self.Label = Label
+        self.current_date = current_date
+        self.setupUi()
+        self.init_slot()
+
+    def setupUi(self):
         self.setWindowTitle("选择日期")
         self.resize(350, 300)
         
@@ -24,8 +29,8 @@ class DatePickerDialog(QDialog):
         self.calendar = QCalendarWidget()
         
         # 设置初始日期
-        if current_date:
-            self.calendar.setSelectedDate(current_date)
+        if self.current_date:
+            self.calendar.setSelectedDate(self.current_date)
         else:
             self.calendar.setSelectedDate(QDate.currentDate())
         
@@ -40,15 +45,19 @@ class DatePickerDialog(QDialog):
         layout.addWidget(self.calendar)
         
         # 创建按钮
-        button_box = QDialogButtonBox(
+        self.button_box = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         )
-        button_box.accepted.connect(self.accept)
-        button_box.rejected.connect(self.reject)
+        self.button_box.button(QDialogButtonBox.Ok).setText("确认")
+        self.button_box.button(QDialogButtonBox.Cancel).setText("取消")
         
-        layout.addWidget(button_box)
+        layout.addWidget(self.button_box)
         self.setLayout(layout)
-    
+
+    def init_slot(self):
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+            
     def accept(self):
         """确认按钮点击事件"""
         selected_date = self.calendar.selectedDate()

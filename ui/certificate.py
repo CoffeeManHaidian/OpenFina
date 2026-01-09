@@ -19,6 +19,10 @@ class Certification(QWidget):
     def __init__(self):
         super().__init__()
         self.voucherManager = VoucherManager()
+        self.subjectWidget = SubjectWindow()
+        self.summaryItems = []
+        self.subjectClasses = []
+        self.subjects = []
         self.setupUI()
         self.init_slot()
 
@@ -28,7 +32,7 @@ class Certification(QWidget):
         self.setWindowTitle("记账凭证")
         self.resize(900, 600)
         # 移除最大化按钮标志，只保留最小化和关闭按钮
-        # self.setWindowFlags(Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
 
         self.mainLayout = QVBoxLayout()
 
@@ -116,7 +120,7 @@ class Certification(QWidget):
         ## 设置默认行高为 40 像素
         self.table.verticalHeader().setDefaultSectionSize(40)
 
-        ## 为第5列和第7列（索引4和6）在每一数据行（不含合计行）添加复选框
+        # 为第5列和第7列（索引4和6）在每一数据行（不含合计行）添加复选框
         for r in range(self.table.rowCount() - 1):
             left_cb = QTableWidgetItem()
             left_cb.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
@@ -127,6 +131,12 @@ class Certification(QWidget):
             right_cb.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
             right_cb.setCheckState(Qt.Unchecked)
             self.table.setItem(r, 5, right_cb)
+        
+        # 为第2列设置提示
+        for r in range(self.table.rowCount() - 1):
+            F2_hint = QTableWidgetItem("按F2")
+            F2_hint.setForeground(QColor(150, 150, 150))
+            self.table.setItem(r, 1, F2_hint)
 
         self.update_totals(0.0, 0.0)
 
@@ -202,17 +212,30 @@ class Certification(QWidget):
         """绑定信号与槽"""
         self.dateBtnLabel.clicked.connect(self.show_date_picker)
         self.datetimeBtnLabel.clicked.connect(self.show_datetime_picker)
-        self.table.itemSelectionChanged.connect(self.calculate_totals)
-        self.voucher_combo.currentTextChanged.connect(lambda: print(self.voucher_combo.currentText()))
+        self.table.itemChanged.connect(self.on_itemChanged)
 
         # F2 打开会计科目选择窗口（全局快捷键，父对象为当前窗口）
         self.subShortcut = QShortcut(QKeySequence(Qt.Key_F2), self)
         self.subShortcut.activated.connect(self.select_subject)
 
+        # 获取会计科目
+        self.subjectWidget.subFunc.connect(self.get_subject)
+
+        # 保存凭证
+        self.btnSave.clicked.connect(self.save_voucher)
+
+    def on_itemChanged(self, item):
+        """单元格内容改变时触发"""
+        # 判断是否为合计行
+        if item.row() < self.table.rowCount() - 1:
+            if item.column() == 0:
+                self.get_summary()
+            self.calculate_totals()
+
     def calculate_totals(self):
         """计算借方和贷方金额合计"""
-        debit_total = 0.0       # 借方金额
-        credit_total = 0.0      # 贷方金额
+        self.debit_total = 0.0       # 借方金额
+        self.credit_total = 0.0      # 贷方金额
 
         for row in range(self.table.rowCount() - 1):
             debit_value = self.table.item(row, 2)
@@ -220,12 +243,12 @@ class Certification(QWidget):
 
             if debit_value and debit_value.text():
                 debit_value = float(debit_value.text().replace(",", ""))
-                debit_total += debit_value      # 计算借方金额
+                self.debit_total += debit_value      # 计算借方金额
             if credit_value and credit_value.text():
                 credit_value = float(credit_value.text().replace(",", ""))
-                credit_total += credit_value    # 计算贷方金额   
+                self.credit_total += credit_value    # 计算贷方金额   
 
-        self.update_totals(debit_total, credit_total)     
+        self.update_totals(self.debit_total, self.credit_total)     
 
     def update_totals(self, debit_total, credit_total):
         """更新合计"""
@@ -302,9 +325,44 @@ class Certification(QWidget):
                 self.subjectWidget.activateWindow()
                 return
 
-            # 否则新建并显示，窗口关闭后自动删除实例
-            self.subjectWidget = SubjectWindow()
+            # 显示窗口
             self.subjectWidget.show()
+
+    def get_subject(self, subjectClass, subject):
+        """获取会计科目类和会计科目"""
+        self.subjectClasses.append(subjectClass)
+        self.subjects.append(subject)
+
+        # 显示会计科目
+        currentRow = self.table.currentRow()
+        self.table.setItem(currentRow, 1, QTableWidgetItem(self.subject))
+
+    def get_summary(self):
+        """获取摘要"""
+        currentRow = self.table.currentRow()
+        summaryItem = self.table.item(currentRow, 0)    
+        if summaryItem:
+            self.summaryItems.append(summaryItem.text())
+
+    def save_voucher(self):
+        """保存凭证"""
+        self.voucher_no = self.voucher_combo.currentText()
+        voucher_data = {
+            "voucher_no": f"{self.voucher_no:0>6}",
+            "date": self.date.toString("yyyy-MM-dd"),
+            "datetime": self.datetime.toString("yyyy-MM-dd"),
+            "summary": self.summaryItems,
+            "subjectClass": self.subjectClasses,
+            "subject": self.subjects,
+            "debit_amount": self.debit_total,
+            "credit_amount": self.credit_total,
+            "created_by": "admin"
+            }
+        
+        self.voucherManager.save_voucher(voucher_data)
+
+        next_no = self.voucherManager.get_next_voucher_no()
+        self.voucher_combo.setEditText(next_no)
 
 
 if __name__ == "__main__":
