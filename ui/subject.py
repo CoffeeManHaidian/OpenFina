@@ -1,7 +1,8 @@
 import json
 import os
 from PySide6.QtWidgets import (QWidget, QLineEdit, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QTreeWidgetItem, QTreeWidget, QApplication, QHeaderView)
+    QPushButton, QLabel, QTreeWidgetItem, QTreeWidget, QApplication, QHeaderView,
+    QSpacerItem, QSizePolicy, QInputDialog, QMessageBox)
 from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QFont, QColor
 
@@ -9,7 +10,7 @@ from PySide6.QtGui import QFont, QColor
 class SubjectWindow(QWidget):
     subFunc = Signal(str, str)
 
-    def __init__(self, json_path="data/subject.json"):
+    def __init__(self, json_path=r"ui\subject.json"):
         super().__init__()
         # 修正路径分隔符，使用os.path处理
         self.json_path = json_path.replace("\\", os.path.sep)
@@ -48,18 +49,24 @@ class SubjectWindow(QWidget):
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         
         # 设置交替行颜色
-        self.subjectTree.setAlternatingRowColors(True)
+        # self.subjectTree.setAlternatingRowColors(True)
         
         ## ButtonBox
-        buttonLayout = QHBoxLayout()
+        topLayout = QHBoxLayout()
+        topSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self.OkBtn = QPushButton("确认")
         self.CancelBtn = QPushButton("取消")
+        self.addBtn = QPushButton("新增")
+        self.modifyBtn = QPushButton("修改")
+        self.deleteBtn = QPushButton("删除")
         
         # 添加按钮间距
-        buttonLayout.addStretch()
-        buttonLayout.addWidget(self.OkBtn)
-        buttonLayout.addWidget(self.CancelBtn)
-        buttonLayout.addStretch()
+        topLayout.addWidget(self.OkBtn)
+        topLayout.addWidget(self.CancelBtn)
+        topLayout.addWidget(self.addBtn)
+        topLayout.addWidget(self.modifyBtn)
+        topLayout.addWidget(self.deleteBtn)
+        topLayout.addItem(topSpacer)
 
         ## Layout
         # search
@@ -68,9 +75,9 @@ class SubjectWindow(QWidget):
         searchLayout.addWidget(self.clearButton)
         
         # main
+        mainLayout.addLayout(topLayout)
         mainLayout.addLayout(searchLayout)
         mainLayout.addWidget(self.subjectTree)
-        mainLayout.addLayout(buttonLayout)
 
         self.setLayout(mainLayout)
 
@@ -83,10 +90,13 @@ class SubjectWindow(QWidget):
         # 确认取消
         self.OkBtn.clicked.connect(self.accept)
         self.CancelBtn.clicked.connect(self.close)
+
+        # 新增项
+        self.addBtn.clicked.connect(self.on_addBtn_clicked)
         
         # 双击确认
         self.subjectTree.itemDoubleClicked.connect(self.accept)
-    
+   
     def load_tree(self):
         """将JSON数据加载到QTreeWidget的通用函数"""
         try:
@@ -96,12 +106,12 @@ class SubjectWindow(QWidget):
             print(f"错误: 找不到文件 {self.json_path}")
             # 创建示例数据用于测试
             json_data = {
-                "资产类": [{"code": "1001", "name": "库存现金"}],
-                "负债类": [{"code": "2001", "name": "短期借款"}],
-                "共同类": [{"code": "3001", "name": "清算资金往来"}],
-                "所有者权益": [{"code": "4001", "name": "实收资本"}],
-                "成本类": [{"code": "5001", "name": "生产成本"}],
-                "损益类": [{"code": "6001", "name": "主营业务收入"}]
+                "资产": [{"code": "1001", "name": "库存现金"}],
+                "负债": [{"code": "2001", "name": "短期借款"}],
+                "共同": [{"code": "3001", "name": "清算资金往来"}],
+                "权益": [{"code": "4001", "name": "实收资本"}],
+                "成本": [{"code": "5001", "name": "生产成本"}],
+                "损益": [{"code": "6001", "name": "主营业务收入"}]
             }
             print("使用示例数据")
 
@@ -113,14 +123,13 @@ class SubjectWindow(QWidget):
             return
         
         # 按顺序处理六大类
-        categories = ["资产类", "负债类", "共同类", "所有者权益", "成本类", "损益类"]
+        categories = ["资产", "负债", "共同", "权益", "成本", "损益"]
         
         for category in categories:
             if category in json_data:
                 # 创建大类节点
                 category_item = QTreeWidgetItem(self.subjectTree)
                 category_item.setText(0, category)
-                category_item.setText(1, "")  # 第二列为空
                 
                 # 设置大类的字体加粗
                 font = category_item.font(0)
@@ -155,22 +164,23 @@ class SubjectWindow(QWidget):
                             'text': search_text,
                             'category_item': category_item
                         })
+
+                        if "subjects" in subject:
+                            for subsub in subject['subjects']:
+                                subsubItem = QTreeWidgetItem(subject_item)
+                                subsubItem.setText(0, subsub["code"])
+                                subsubItem.setText(1, subsub["name"])
                     else:
                         print(f"警告: {category} 中的科目数据格式不正确: {subject}")
                 
-                # 添加子节点数量统计
-                child_count = category_item.childCount()
-                if child_count > 0:
-                    category_item.setText(0, f"{category} ({child_count}个科目)")
-                
                 # 默认展开所有大类
-                category_item.setExpanded(True)
+                category_item.setExpanded(False)
             else:
                 print(f"警告: 在JSON数据中未找到类别: {category}")
         
         # 调整列宽
         self.subjectTree.resizeColumnToContents(0)
-        self.subjectTree.expandAll()
+        # self.subjectTree.expandAll()
         
         print(f"加载完成，共加载 {len(self.all_items)} 个科目")
     
@@ -184,6 +194,9 @@ class SubjectWindow(QWidget):
                 item_info['item'].setHidden(False)
                 item_info['category_item'].setHidden(False)
                 item_info['category_item'].setExpanded(True)
+                if "parent" in item_info:
+                    item_info['parent'].setHidden(False)
+                    item_info['parent'].setExpanded(True)
             return
         
         # 首先隐藏所有科目节点
@@ -199,11 +212,15 @@ class SubjectWindow(QWidget):
                 item = item_info['item']
                 item.setHidden(False)
                 visible_categories.add(item_info['category_item'])
+                if "parent" in item_info:
+                    item.parent().setHidden(False)
+                    visible_categories.add(item_info['parent'])
         
         # 显示或隐藏类别节点
         for i in range(self.subjectTree.topLevelItemCount()):
             category_item = self.subjectTree.topLevelItem(i)
             if category_item in visible_categories:
+                # print(category_item.text(0))
                 category_item.setHidden(False)
                 category_item.setExpanded(True)
             else:
@@ -262,6 +279,62 @@ class SubjectWindow(QWidget):
         self.subFunc.emit(code, name)
         self.close()
 
+    def on_addBtn_clicked(self):
+        text, ok = QInputDialog.getText(self, "新增科目", "输入科目名称:")
+        if ok and text:
+            print(text)
+        else:
+            QMessageBox.warning(self, "输入取消", "没有输入或取消了操作")
+
+        parent = self.subjectTree.currentItem()
+        code = f"{parent.text(0)}.{parent.childCount()+1:02d}"
+        newItem = QTreeWidgetItem(parent)
+        newItem.setText(0, code)
+        newItem.setText(1, text)
+        parent.setExpanded(True)
+
+        # 存储完整信息，以便搜索和发射信号
+        newItem.setData(0, Qt.ItemDataRole.UserRole, {
+            "category": parent.parent().text(0),
+            "code": newItem.text(0),
+            "name": newItem.text(1)
+        })
+        
+        # 添加到搜索列表
+        search_text = f"{newItem.text(0)} {newItem.text(1)}"
+        print(search_text)
+        self.all_items.append({
+            'item': newItem,
+            'text': search_text,
+            'category_item': parent.parent(),
+            'parent': parent
+        })
+        
+        def save_subject_to_json(parent_code, sub_code, sub_name):
+            json_file_path = self.json_path
+            print(parent_code, sub_code, sub_name)
+            # 将新增的科目信息追加写入 JSON 文件（按类别
+            with open(self.json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f) or {}
+            
+            # 遍历所有分类
+            for category in data.values():
+                for subject in category:
+                    if subject["code"] == parent_code:
+                        # 如果父科目已有"subjects"字段，则添加；否则创建
+                        if "subjects" in subject:
+                            subject["subjects"].append({"code": sub_code, "name": sub_name})
+                        else:
+                            subject["subjects"] = [{"code": sub_code, "name": sub_name}]
+                        print(f"成功在科目 {parent_code} 下添加子目录 {sub_code}")
+                        
+                        # 保存回文件
+                        with open(json_file_path, 'w', encoding='utf-8') as file:
+                            json.dump(data, file, ensure_ascii=False, indent=2)
+                        return True
+
+        save_subject_to_json(parent.text(0), newItem.text(0), newItem.text(1))
+
 
 if __name__ == "__main__":
     app = QApplication([])
@@ -269,7 +342,7 @@ if __name__ == "__main__":
     
     # 连接信号到打印函数用于测试
     def print_selected(code, name):
-        print(f"发射信号: 编号={code}, 名称={name}")
+        print(f"编号={code}, 名称={name}")
     
     window.subFunc.connect(print_selected)
     

@@ -18,13 +18,23 @@ from ui.subject import SubjectWindow
 class Certification(QWidget):
     def __init__(self):
         super().__init__()
+        self.current_date = QDate.currentDate()
         self.voucherManager = VoucherManager()
         self.subjectWidget = SubjectWindow()
         self.summaryItems = []
         self.subjectClasses = []
         self.subjects = []
+        self.user_info()
         self.setupUI()
         self.init_slot()
+
+    def user_info(self):
+        """获取用户信息"""
+        date_str = self.current_date.toString("yyyy年MM期")
+
+        self.companyLb = f"Open公司"
+        self.voucherLb = f"{date_str}"
+        self.nameLb = f"张三"
 
     def setupUI(self):
         """设置表格UI"""
@@ -39,7 +49,7 @@ class Certification(QWidget):
 
         ## 标题栏
         self.titleWidget = QWidget()
-        titleLayout = QVBoxLayout()
+        titleLayout = QVBoxLayout(self.titleWidget)
         titleLayout.setSpacing(0)
         # titleLayout.setContentsMargins(0, 0, 0, 0)
         labelLayout = QHBoxLayout()
@@ -52,7 +62,7 @@ class Certification(QWidget):
             QWidget {
             background-color: rgb(255, 255, 255);
         }""")
-        self.titleWidget.setLayout(titleLayout)
+        # self.titleWidget.setLayout(titleLayout)
 
         # 标题
         self.title = QLabel("通用记账凭证")
@@ -72,7 +82,7 @@ class Certification(QWidget):
         titleSpacer2 = QSpacerItem(1400, 100, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         titleLayout.addSpacerItem(titleSpacer2)
 
-        # 业务日期
+        # 凭证日期
         self.dateLabel = QLabel("业务日期 ")
         self.dateLabel.setStyleSheet("""
             QLabel {
@@ -82,9 +92,9 @@ class Certification(QWidget):
                 qproperty-alignment: AlignCenter;
             }
         """)
-        self.date = QDate.currentDate()
+        self.voucher_date = self.current_date
         self.dateBtnLabel = ClickableLabel()
-        self.update_date_label(self.date, self.dateBtnLabel)
+        self.update_date_label(self.voucher_date, self.dateBtnLabel)
         self.dateBtnLabel.setStyleSheet("""
             QLabel {
                 font-family: "宋体";
@@ -94,10 +104,10 @@ class Certification(QWidget):
             }
         """)
 
-        # 凭证日期
-        self.datetime = QDate.currentDate()
+        # 会计时间
+        self.created_time = self.current_date
         self.datetimeBtnLabel = ClickableLabel()
-        self.update_date_label(self.datetime, self.datetimeBtnLabel)
+        self.update_date_label(self.created_time, self.datetimeBtnLabel)
         self.datetimeBtnLabel.setStyleSheet("""
             QLabel {
                 font-family: "宋体";
@@ -118,7 +128,7 @@ class Certification(QWidget):
 
         ## 凭证信息
         self.voucherWidget = QWidget()
-        voucherLayout = QVBoxLayout()
+        voucherLayout = QVBoxLayout(self.voucherWidget)
         self.voucherWidget.setMinimumSize(QSize(200,100))
         self.voucherWidget.setMaximumSize(QSize(200,100))
         self.voucherWidget.setStyleSheet("""
@@ -127,29 +137,29 @@ class Certification(QWidget):
             }
             """)
         self.voucherWidget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.voucherWidget.setLayout(voucherLayout)
+        # self.voucherWidget.setLayout(voucherLayout)
         
         # 凭证字
         typeLayout = QHBoxLayout()
         self.type_lb = QLabel("凭证字")
         typeLayout.addWidget(self.type_lb)
-        self.type_combo = QComboBox()
-        self.type_combo.setMinimumSize(100, 30)
-        self.type_combo.setMaximumSize(100, 30)
-        self.type_combo.setEditable(True)
-        self.type_combo.addItems(["记账凭证","收款凭证","支付凭证","转账凭证"])
-        typeLayout.addWidget(self.type_combo)
+        self.typeCombo = QComboBox()
+        self.typeCombo.setMinimumSize(100, 30)
+        self.typeCombo.setMaximumSize(100, 30)
+        self.typeCombo.setEditable(True)
+        self.typeCombo.addItems(["记账凭证","收款凭证","支付凭证","转账凭证"])
+        typeLayout.addWidget(self.typeCombo)
 
         # 凭证号
         numberLayout = QHBoxLayout()
         self.number_lb = QLabel("凭证号")
         numberLayout.addWidget(self.number_lb)
-        self.number_combo = QComboBox()
-        self.number_combo.setMinimumSize(100, 30)
-        self.number_combo.setMaximumSize(100, 30)
-        self.number_combo.setEditable(True)
-        self.number_combo.addItems(self.voucherManager.get_voucher_history())
-        numberLayout.addWidget(self.number_combo)
+        self.numberCombo = QComboBox()
+        self.numberCombo.setMinimumSize(100, 30)
+        self.numberCombo.setMaximumSize(100, 30)
+        self.numberCombo.setEditable(True)
+        self.numberCombo.addItems(self.voucherManager.get_voucher_history())
+        numberLayout.addWidget(self.numberCombo)
 
         voucherLayout.addLayout(typeLayout)
         voucherLayout.addLayout(numberLayout)
@@ -178,11 +188,13 @@ class Certification(QWidget):
             right_cb.setCheckState(Qt.Unchecked)
             self.table.setItem(r, 5, right_cb)
         
-        # 为第2列设置提示
-        for r in range(self.table.rowCount() - 1):
-            F2_hint = QTableWidgetItem("按F2")
-            F2_hint.setForeground(QColor(150, 150, 150))
-            self.table.setItem(r, 1, F2_hint)
+        # 设置科目为不可编辑，并设置提示
+        for row in range(self.table.rowCount() - 1):
+            subjectItem = QTableWidgetItem("按F2")
+            subjectItem.setForeground(QColor(150, 150, 150))
+            subjectItem.setBackground(QColor(240, 240, 240))
+            subjectItem.setFlags(subjectItem.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 1, subjectItem)
 
         self.update_totals(0.0, 0.0)
 
@@ -199,7 +211,7 @@ class Certification(QWidget):
         # 设置表格属性
         # self.table.setAlternatingRowColors(True)
         # self.table.setShowGrid(True)
-        # self.table.verticalHeader().setVisible(False)
+        # self.table.verticalHeader().setVisible(False)        
 
         ## 设置工具栏
         self.topWidget = QWidget()
@@ -224,6 +236,7 @@ class Certification(QWidget):
             }
         """)
         topLayout.addWidget(self.btnSave)
+        topLayout.addSpacing(10)
 
         self.btnCancel = QPushButton(self.topWidget)
         self.btnCancel.setObjectName("取消")
@@ -246,6 +259,20 @@ class Certification(QWidget):
         topSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         topLayout.addItem(topSpacer)
 
+        ## 底部状态栏
+        self.bottomWidget = QWidget()
+        bottomLayout = QHBoxLayout(self.bottomWidget)
+
+        # 登录信息（未录入）
+        companyLb = QLabel(self.companyLb)
+        voucherLb = QLabel(f"总账: {self.voucherLb}")
+        nameLb = QLabel(self.nameLb)
+
+        # 底部布局
+        bottomLayout.addWidget(companyLb)
+        bottomLayout.addWidget(voucherLb)
+        bottomLayout.addWidget(nameLb)
+
         ## 布局
         upperLayout = QHBoxLayout()
         upperLayout.setSpacing(0)
@@ -255,7 +282,8 @@ class Certification(QWidget):
         mainLayout.addLayout(topLayout) 
         mainLayout.addSpacing(10)
         mainLayout.addLayout(upperLayout)
-        mainLayout.addWidget(self.table)     
+        mainLayout.addWidget(self.table) 
+        mainLayout.addWidget(self.bottomWidget)    
 
         self.setLayout(mainLayout)
 
@@ -346,24 +374,24 @@ class Certification(QWidget):
         label.setText(f"{date_str}")
 
     def show_date_picker(self):
-        """选择业务日期"""
-        dateDialog = DatePickerDialog(self.datetime, self.dateBtnLabel)
+        """选择凭证日期"""
+        dateDialog = DatePickerDialog(self.created_time, self.dateBtnLabel)
         dateDialog.date_selected.connect(self.select_date)
         dateDialog.exec()
     
     def show_datetime_picker(self):
-        """选择业务日期"""
-        dateDialog = DatePickerDialog(self.datetime, self.datetimeBtnLabel)
+        """选择会计事件"""
+        dateDialog = DatePickerDialog(self.created_time, self.datetimeBtnLabel)
         dateDialog.date_selected.connect(self.select_date)
         dateDialog.exec()
 
     def select_date(self, date, label):
         """选择日期并更新"""
         if label == self.dateBtnLabel:
-            self.date = date
+            self.voucher_date = date
             self.update_date_label(date, self.dateBtnLabel)
         elif label == self.datetimeBtnLabel:
-            self.datetime = date
+            self.created_time = date
             self.update_date_label(date, self.datetimeBtnLabel)
 
     def select_subject(self):
@@ -379,14 +407,13 @@ class Certification(QWidget):
             # 显示窗口
             self.subjectWidget.show()
 
-    def get_subject(self, subjectClass, subject):
+    def get_subject(self, code, name):
         """获取会计科目类和会计科目"""
-        self.subjectClasses.append(subjectClass)
-        self.subjects.append(subject)
+        self.subjectStr = f"{code} - {name}"
 
         # 显示会计科目
         currentRow = self.table.currentRow()
-        self.table.setItem(currentRow, 1, QTableWidgetItem(self.subject))
+        self.table.setItem(currentRow, 1, QTableWidgetItem(self.subjectStr))
 
     def get_summary(self):
         """获取摘要"""
@@ -397,23 +424,21 @@ class Certification(QWidget):
 
     def save_voucher(self):
         """保存凭证"""
-        self.voucher_no = self.number_combo.currentText()
-        voucher_data = {
-            "voucher_no": f"{self.voucher_no:0>6}",
-            "date": self.date.toString("yyyy-MM-dd"),
-            "datetime": self.datetime.toString("yyyy-MM-dd"),
-            "summary": self.summaryItems,
-            "subjectClass": self.subjectClasses,
-            "subject": self.subjects,
-            "debit_amount": self.debit_total,
-            "credit_amount": self.credit_total,
-            "created_by": "admin"
-            }
-        
-        self.voucherManager.save_voucher(voucher_data)
-
-        next_no = self.voucherManager.get_next_voucher_no()
-        self.number_combo.setEditText(next_no)
+        """
+        voucher_master [
+            "voucher_no": numberCombo
+            "voucher_type": typeCombo
+            "voucher_date": self.voucher_date
+            "attachment_count": attachment_count
+            "c": 附件张数
+            "debit_total": self.debit_total
+            "debit_value": self.debit_value
+            "status": 状态
+            "auditor": 审核人
+            "created_by": self.name
+            "created_time": self.created_time
+        ]
+        """
 
 
 if __name__ == "__main__":

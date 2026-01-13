@@ -28,16 +28,14 @@ class VoucherManager(QObject):
                 voucher_no VARCHAR(20) UNIQUE NOT NULL,      -- 凭证编号
                 voucher_type VARCHAR(20) DEFAULT '记账凭证',  -- 凭证类型：记账凭证、收款凭证、付款凭证、转账凭证
                 voucher_date DATE NOT NULL,                  -- 凭证日期（业务日期）
-                accounting_period VARCHAR(7) NOT NULL,       -- 会计期间：YYYY-MM
-                attachment_count INTEGER DEFAULT 0,          -- 附件张数
-                total_debit_amount DECIMAL(28,2) DEFAULT 0,  -- 借方合计金额
-                total_credit_amount DECIMAL(28,2) DEFAULT 0, -- 贷方合计金额
-                status VARCHAR(20) DEFAULT '已保存',          -- 状态：已保存、已审核、已记账、已结账
+                c INTEGER DEFAULT 0,                         -- 附件张数
+                debit_value DECIMAL(28,2) DEFAULT 0,         -- 借方合计金额
+                credit_total DECIMAL(28,2) DEFAULT 0,        -- 贷方合计金额
+                status VARCHAR(20) DEFAULT '暂存',           -- 状态：过账、预制、暂存
                 auditor VARCHAR(50),                         -- 审核人
                 auditor_date DATETIME,                       -- 审核日期
                 created_by VARCHAR(50) NOT NULL,             -- 制单人
                 created_time DATETIME DEFAULT CURRENT_TIMESTAMP, -- 制单时间
-                updated_time DATETIME DEFAULT CURRENT_TIMESTAMP, -- 最后修改时间
                 remark TEXT                                  -- 备注
             )
         ''')
@@ -120,7 +118,7 @@ class VoucherManager(QObject):
     def _init_default_number_rules(self, cursor):
         """初始化默认凭证号规则"""
         default_rules = [
-            ('记账凭证', '', 'YYYY', 'MM', '-', 4, 0, 'MONTHLY'),
+            ('记账凭证', 'J', 'YYYY', 'MM', '-', 4, 0, 'MONTHLY'),
             ('收款凭证', 'S', 'YYYY', 'MM', '-', 4, 0, 'MONTHLY'),
             ('付款凭证', 'F', 'YYYY', 'MM', '-', 4, 0, 'MONTHLY'),
             ('转账凭证', 'Z', 'YYYY', 'MM', '-', 4, 0, 'MONTHLY'),

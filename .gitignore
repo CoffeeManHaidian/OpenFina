@@ -4,3 +4,4 @@ icons/icon.ai
 *.pyc
 *.db
 data
+*__pycache__
