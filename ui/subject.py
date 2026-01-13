@@ -93,6 +93,8 @@ class SubjectWindow(QWidget):
 
         # 新增项
         self.addBtn.clicked.connect(self.on_addBtn_clicked)
+        # 删除项
+        self.deleteBtn.clicked.connect(self.on_deleteBtn_clicked)
         
         # 双击确认
         self.subjectTree.itemDoubleClicked.connect(self.accept)
@@ -103,17 +105,7 @@ class SubjectWindow(QWidget):
             with open(self.json_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
         except FileNotFoundError:
-            print(f"错误: 找不到文件 {self.json_path}")
-            # 创建示例数据用于测试
-            json_data = {
-                "资产": [{"code": "1001", "name": "库存现金"}],
-                "负债": [{"code": "2001", "name": "短期借款"}],
-                "共同": [{"code": "3001", "name": "清算资金往来"}],
-                "权益": [{"code": "4001", "name": "实收资本"}],
-                "成本": [{"code": "5001", "name": "生产成本"}],
-                "损益": [{"code": "6001", "name": "主营业务收入"}]
-            }
-            print("使用示例数据")
+            QMessageBox.setText(f"找不到{self.json_path}文件")
 
         self.subjectTree.clear()
         self.all_items.clear()
@@ -122,61 +114,59 @@ class SubjectWindow(QWidget):
             print("错误: JSON数据为空")
             return
         
-        # 按顺序处理六大类
-        categories = ["资产", "负债", "共同", "权益", "成本", "损益"]
-        
-        for category in categories:
-            if category in json_data:
-                # 创建大类节点
-                category_item = QTreeWidgetItem(self.subjectTree)
-                category_item.setText(0, category)
-                
-                # 设置大类的字体加粗
-                font = category_item.font(0)
-                font.setBold(True)
-                font.setPointSize(11)
-                category_item.setFont(0, font)
-                category_item.setFont(1, font)
-                
-                # 设置大类的背景色
-                category_item.setBackground(0, QColor(240, 240, 240))
-                category_item.setBackground(1, QColor(240, 240, 240))
-                
-                # 添加具体的会计科目
-                subjects = json_data[category]
-                for subject in subjects:
-                    if isinstance(subject, dict) and "code" in subject and "name" in subject:
-                        subject_item = QTreeWidgetItem(category_item)
-                        subject_item.setText(0, subject["code"])
-                        subject_item.setText(1, subject["name"])
-                        
-                        # 存储完整信息，以便搜索和发射信号
-                        subject_item.setData(0, Qt.ItemDataRole.UserRole, {
-                            "category": category,
-                            "code": subject["code"],
-                            "name": subject["name"]
-                        })
-                        
-                        # 添加到搜索列表
-                        search_text = f"{subject['code']} {subject['name']}"
-                        self.all_items.append({
-                            'item': subject_item,
-                            'text': search_text,
-                            'category_item': category_item
-                        })
+        def read_subjects(json_data, parent):
+            """递归读取科目数据"""
+            # 如果 data 是字典，表示当前是科目对象
+            if isinstance(json_data, dict):     
+                subjectItem = QTreeWidgetItem(parent)
+                subjectItem.setText(0, json_data["code"])
+                subjectItem.setText(1, json_data["name"])
 
-                        if "subjects" in subject:
-                            for subsub in subject['subjects']:
-                                subsubItem = QTreeWidgetItem(subject_item)
-                                subsubItem.setText(0, subsub["code"])
-                                subsubItem.setText(1, subsub["name"])
-                    else:
-                        print(f"警告: {category} 中的科目数据格式不正确: {subject}")
+                # 存储完整信息，以便搜索和发射信号
+                subjectItem.setData(0, Qt.ItemDataRole.UserRole, {
+                    "category": category,
+                    "code": json_data["code"],
+                    "name": json_data["name"]
+                })
+
+                # 添加到搜索列表
+                search_text = f"{json_data['code']} {json_data['name']}"
+                self.all_items.append({
+                    'item': subjectItem,
+                    'text': search_text,
+                    'category_item': categoryItem
+                })
+                    
+                # 如果存在子科目，递归读取
+                if 'subjects' in json_data and json_data['subjects']:
+                    read_subjects(json_data['subjects'], subjectItem)
+            
+            # 如果 data 是列表，表示当前是科目列表
+            elif isinstance(json_data, list):
+                for item in json_data:
+                    read_subjects(item, parent)
+        
+        for category, subjects in json_data.items():
+            # 创建大类节点
+            categoryItem = QTreeWidgetItem(self.subjectTree)
+            categoryItem.setText(0, category)
+            
+            # 设置大类的字体加粗
+            font = categoryItem.font(0)
+            font.setBold(True)
+            font.setPointSize(11)
+            categoryItem.setFont(0, font)
+            categoryItem.setFont(1, font)
+            
+            # 设置大类的背景色
+            categoryItem.setBackground(0, QColor(240, 240, 240))
+            categoryItem.setBackground(1, QColor(240, 240, 240))
+
+            # 添加具体的会计科目
+            read_subjects(subjects, categoryItem)            
                 
-                # 默认展开所有大类
-                category_item.setExpanded(False)
-            else:
-                print(f"警告: 在JSON数据中未找到类别: {category}")
+            # 默认展开所有大类
+            categoryItem.setExpanded(False)
         
         # 调整列宽
         self.subjectTree.resizeColumnToContents(0)
@@ -187,44 +177,41 @@ class SubjectWindow(QWidget):
     def filter_items(self, search_text):
         """根据搜索文本过滤项目"""
         search_text = search_text.strip().lower()
-        
+
         if not search_text:
-            # 显示所有项目
             for item_info in self.all_items:
                 item_info['item'].setHidden(False)
                 item_info['category_item'].setHidden(False)
-                item_info['category_item'].setExpanded(True)
-                if "parent" in item_info:
-                    item_info['parent'].setHidden(False)
-                    item_info['parent'].setExpanded(True)
+                item_info['category_item'].setExpanded(False)
             return
         
         # 首先隐藏所有科目节点
-        for item_info in self.all_items:
-            item_info['item'].setHidden(True)
-        
+        def hideAllItem(item):
+            if item:
+                item.setHidden(True)
+                for i in range(item.childCount()):
+                    hideAllItem(item.child(i).setHidden(True))
+
+        for i in range(self.subjectTree.topLevelItemCount()):
+            hideAllItem(self.subjectTree.topLevelItem(i))
+
         # 标记哪些类别有可见的子节点
         visible_categories = set()
-        
+
+        def add_visible(item, visible_categories):
+            if item.parent():
+                print(item.parent().text(0))
+                item.parent().setHidden(False)
+                item.parent().setExpanded(True)
+                visible_categories.add(item.parent())
+                add_visible(item.parent(), visible_categories)
+
         # 显示匹配的项目
         for item_info in self.all_items:
             if search_text in item_info['text'].lower():
                 item = item_info['item']
                 item.setHidden(False)
-                visible_categories.add(item_info['category_item'])
-                if "parent" in item_info:
-                    item.parent().setHidden(False)
-                    visible_categories.add(item_info['parent'])
-        
-        # 显示或隐藏类别节点
-        for i in range(self.subjectTree.topLevelItemCount()):
-            category_item = self.subjectTree.topLevelItem(i)
-            if category_item in visible_categories:
-                # print(category_item.text(0))
-                category_item.setHidden(False)
-                category_item.setExpanded(True)
-            else:
-                category_item.setHidden(True)
+                add_visible(item, visible_categories)
     
     def clear_search(self):
         """清除搜索"""
@@ -232,7 +219,7 @@ class SubjectWindow(QWidget):
         for item_info in self.all_items:
             item_info['item'].setHidden(False)
             item_info['category_item'].setHidden(False)
-            item_info['category_item'].setExpanded(True)
+            item_info['category_item'].setExpanded(False)
 
     def accept(self):
         """确认按钮点击事件或双击事件"""
@@ -241,9 +228,9 @@ class SubjectWindow(QWidget):
         if not current_item:
             # 如果没有选中任何项，尝试获取第一个叶子节点
             for i in range(self.subjectTree.topLevelItemCount()):
-                category_item = self.subjectTree.topLevelItem(i)
-                if category_item.childCount() > 0:
-                    current_item = category_item.child(0)
+                categoryItem = self.subjectTree.topLevelItem(i)
+                if categoryItem.childCount() > 0:
+                    current_item = categoryItem.child(0)
                     break
         
         if not current_item:
@@ -256,8 +243,8 @@ class SubjectWindow(QWidget):
             return
         
         # 获取选中的科目信息
-        category_item = current_item.parent()
-        category = category_item.text(0)
+        categoryItem = current_item.parent()
+        category = categoryItem.text(0)
         code = current_item.text(0)
         name = current_item.text(1)
         
@@ -280,13 +267,22 @@ class SubjectWindow(QWidget):
         self.close()
 
     def on_addBtn_clicked(self):
+        parent = self.subjectTree.currentItem()
+        # 判断子节点深度
+        current = parent
+        depth = 0
+        while current.parent():
+            depth += 1
+            current = current.parent()
+        if depth > 1:
+            return
+        
         text, ok = QInputDialog.getText(self, "新增科目", "输入科目名称:")
         if ok and text:
             print(text)
         else:
             QMessageBox.warning(self, "输入取消", "没有输入或取消了操作")
 
-        parent = self.subjectTree.currentItem()
         code = f"{parent.text(0)}.{parent.childCount()+1:02d}"
         newItem = QTreeWidgetItem(parent)
         newItem.setText(0, code)
@@ -306,13 +302,12 @@ class SubjectWindow(QWidget):
         self.all_items.append({
             'item': newItem,
             'text': search_text,
-            'category_item': parent.parent(),
-            'parent': parent
+            'category_item': parent.parent()
         })
         
         def save_subject_to_json(parent_code, sub_code, sub_name):
             json_file_path = self.json_path
-            print(parent_code, sub_code, sub_name)
+            # print(parent_code, sub_code, sub_name)
             # 将新增的科目信息追加写入 JSON 文件（按类别
             with open(self.json_path, 'r', encoding='utf-8') as f:
                 data = json.load(f) or {}
@@ -334,6 +329,51 @@ class SubjectWindow(QWidget):
                         return True
 
         save_subject_to_json(parent.text(0), newItem.text(0), newItem.text(1))
+
+    def on_deleteBtn_clicked(self):
+        """删除子细目"""
+        current_item = self.subjectTree.currentItem()
+
+        reply = QMessageBox.question(
+            self, 
+            "确认删除",
+            f"确认删除 {current_item.text(1)} 吗？\n此操作不可恢复！！！",
+            QMessageBox.Yes | QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            self.delete_subject(current_item)
+
+    def delete_subject(self, current_item):
+        # print(current_item.childCount())
+        if not current_item.childCount() == 0:
+            return
+        
+        parent = current_item.parent()
+        if parent:
+            parent.removeChild(current_item)
+
+        # 从json文件中删除      
+        with open(self.json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        target_code = current_item.text(0)
+        def delete_subject_from_json(data, target_code, target_item):
+            category = target_item.data(0, Qt.UserRole)
+            items = data[category['category']]
+            for item in items:
+                # print(item['code'])
+                if "subjects" in item:
+                    for i, subitem in enumerate(item['subjects']):
+                        if subitem['code'] == target_code:
+                            print(subitem)
+                            item['subjects'].pop(i)
+            return data
+        
+        upload_data = delete_subject_from_json(data, target_code, current_item)
+        # 写入到json
+        with open(self.json_path, 'w', encoding='utf-8') as f:
+            json.dump(upload_data, f, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":
