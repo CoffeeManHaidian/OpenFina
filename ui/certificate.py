@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from PySide6.QtWidgets import (QApplication, QHBoxLayout, QHeaderView, QPushButton,
     QSizePolicy, QSpacerItem, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QWidget, QLabel, QComboBox)
+    QVBoxLayout, QWidget, QLabel, QComboBox, QMessageBox)
 from PySide6.QtCore import Qt, QDate, QSize
 from PySide6.QtGui import QFont, QColor, QShortcut, QKeySequence
 
@@ -12,14 +12,16 @@ from ui.calendar import DatePickerDialog
 from ui.clickableTabel import ClickableLabel
 from lib.voucher import VoucherManager
 from ui.subject import SubjectWindow
-# from ui.
+from lib.models import Voucher, VoucherDetail
 
 
 class Certification(QWidget):
     def __init__(self):
         super().__init__()
         self.current_date = QDate.currentDate()
-        self.voucherManager = VoucherManager()
+        current_month = self.current_date.toString("yyyyMM")
+        self.voucherManager = VoucherManager(rf"data\{current_month}.db")
+
         self.subjectWidget = SubjectWindow()
         self.summaryItems = []
         self.subjectClasses = []
@@ -104,7 +106,7 @@ class Certification(QWidget):
             }
         """)
 
-        # 会计时间
+        # 创建/修改时间
         self.created_time = self.current_date
         self.datetimeBtnLabel = ClickableLabel()
         self.update_date_label(self.created_time, self.datetimeBtnLabel)
@@ -158,7 +160,7 @@ class Certification(QWidget):
         self.numberCombo.setMinimumSize(100, 30)
         self.numberCombo.setMaximumSize(100, 30)
         self.numberCombo.setEditable(True)
-        self.numberCombo.addItems(self.voucherManager.get_voucher_history())
+        # self.numberCombo.addItems(self.voucherManager.get_voucher_history())
         numberLayout.addWidget(self.numberCombo)
 
         voucherLayout.addLayout(typeLayout)
@@ -307,8 +309,6 @@ class Certification(QWidget):
         """单元格内容改变时触发"""
         # 判断是否为合计行
         if item.row() < self.table.rowCount() - 1:
-            if item.column() == 0:
-                self.get_summary()
             self.calculate_totals()
 
     def calculate_totals(self):
@@ -409,36 +409,53 @@ class Certification(QWidget):
 
     def get_subject(self, code, name):
         """获取会计科目类和会计科目"""
-        self.subjectStr = f"{code} - {name}"
+        self.subjectStr = f"{code} {name}"
 
         # 显示会计科目
         currentRow = self.table.currentRow()
         self.table.setItem(currentRow, 1, QTableWidgetItem(self.subjectStr))
 
-    def get_summary(self):
-        """获取摘要"""
-        currentRow = self.table.currentRow()
-        summaryItem = self.table.item(currentRow, 0)    
-        if summaryItem:
-            self.summaryItems.append(summaryItem.text())
-
     def save_voucher(self):
         """保存凭证"""
-        """
-        voucher_master [
-            "voucher_no": numberCombo
-            "voucher_type": typeCombo
-            "voucher_date": self.voucher_date
-            "attachment_count": attachment_count
-            "c": 附件张数
-            "debit_total": self.debit_total
-            "debit_value": self.debit_value
-            "status": 状态
-            "auditor": 审核人
-            "created_by": self.name
-            "created_time": self.created_time
-        ]
-        """
+        # 获取凭证内容
+        voucher = Voucher(
+            voucher_no=self.numberCombo.currentText(),
+            voucher_type=self.typeCombo.currentText(),
+            voucher_date=self.dateBtnLabel.text(),
+            attach_count=0,
+            preparer=self.nameLb,
+            reviewer=None,
+            attention=None,
+            created_time=self.created_time
+        )
+
+        for row in range(self.table.rowCount() - 1):
+            debit_value = self.table.item(row, 2)
+            credit_value = self.table.item(row, 4)
+            if debit_value and debit_value.text():
+                debit_value = float(debit_value.text().replace(",", ""))
+            if credit_value and credit_value.text():
+                credit_value = float(credit_value.text().replace(",", ""))  
+
+            if debit_value or credit_value:
+                detail = VoucherDetail(
+                    line_no=row,
+                    account_code=self.subjectStr.split(" ")[0],
+                    account_name=self.subjectStr.split(" ")[1],
+                    debit_amount=debit_value,
+                    credit_amount=debit_value,
+                    summary=self.table.item(row, 0).text(),
+                )
+                voucher.details.append(detail)
+            else:
+                pass
+
+        try:
+            self.voucherManager.save_voucher(voucher)
+            QMessageBox.information(self, "成功", "凭证保存成功！")
+        except Exception as e:
+            print(f"凭证保存失败{str(e)}")
+            QMessageBox.critical(self, "错误", f"凭证保存失败{str(e)}")
 
 
 if __name__ == "__main__":

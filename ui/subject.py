@@ -10,7 +10,7 @@ from PySide6.QtGui import QFont, QColor
 class SubjectWindow(QWidget):
     subFunc = Signal(str, str)
 
-    def __init__(self, json_path=r"ui\subject.json"):
+    def __init__(self, json_path=r"source\subject.json"):
         super().__init__()
         # 修正路径分隔符，使用os.path处理
         self.json_path = json_path.replace("\\", os.path.sep)
