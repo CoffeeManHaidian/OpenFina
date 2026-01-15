@@ -5,7 +5,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import Qt, QIcon
 from PySide6.QtCore import QSize
 
-from InputWindow import InputWindow
 from ui.certificate import Certification
 
 class MyWindow(QMainWindow, Ui_MainWindow):
@@ -22,10 +21,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.init_solt()
 
     def btn_max_clicked(self):
-        """
-        最大化窗口
-        return:
-        """
+        """最大化窗口"""
 
         if self.isMaximized():
             self.showNormal()
@@ -52,27 +48,16 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 "}")
 
     def double_clicked_border_bar(self, event):
-        """
-        双击顶部标题条,使其在最大化和还原之间切换
-        param event:
-        return:
-        """
+        """双击顶部标题条,使其在最大化和还原之间切换"""
         if event.button() == Qt.MouseButton.LeftButton:
             self.resize_maximize()      
 
     def move_title_bar(self, event):
-        """
-        拖动顶部标题条
-        param event:
-        return:
-        """
+        """拖动顶部标题条"""
         self.windowHandle().startSystemMove() 
 
     def redefine_window_border_btn(self):
-        """
-        使模拟边框的3个按钮生效(关闭、最小化、最大化、双击标题框)
-        return:
-        """
+        """使模拟边框的3个按钮生效(关闭、最小化、最大化、双击标题框)"""
         self.btn_close.clicked.connect(self.close)  # 关闭按钮
         self.btn_min.clicked.connect(self.showMinimized)  # 最小化按钮
         self.btn_max.clicked.connect(self.btn_max_clicked)  # 最大化按钮
@@ -81,45 +66,56 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.TittleBar.mouseMoveEvent = self.move_title_bar
     
     def init_solt(self):
-        """
-        初始化槽函数
-        """
+        """初始化槽函数"""
         self.Ladger.clicked.connect(lambda:self.goto_subfunc_page(1))
         self.Report.clicked.connect(lambda:self.goto_subfunc_page(2))
 
         self.btn_certification.clicked.connect(lambda:self.goto_detailfunc_page(1))
         self.btn_ledger.clicked.connect(lambda:self.goto_detailfunc_page(2))
 
-        self.btn_input.clicked.connect(self.input_button_clicked)
+        self.inputBtn.clicked.connect(self.on_inputBtn_clicked)
+        self.queryBtn.clicked.connect(self.on_queryBtn_clicked)
 
     def goto_subfunc_page(self, number):
-        """
-        切换子功能窗口页面
-        param number:
-        return:
-        """
+        """切换子功能窗口页面"""
         self.wgt_SubFunc.setCurrentIndex(number)
 
     def goto_detailfunc_page(self, number):
-        """
-        切换明细功能窗口页面
-        param number:
-        return:
-        """
+        """切换明细功能窗口页面"""
         self.wgt_DetailFunc.setCurrentIndex(number)
 
-    def input_button_clicked(self):
-        """
-        打开凭证录入窗口
-        """
+    def on_inputBtn_clicked(self):
+        """打开凭证录入窗口"""
         # 如果窗口已打开，则置顶并激活
         if hasattr(self, "inputWindow") and self.inputWindow.isVisible():
             self.inputWindow.raise_()
             self.inputWindow.activateWindow()
 
-        self.inputWindow = Certification()
+        self.inputWindow = Certification() 
         self.inputWindow.show()
 
+        # 获取最新凭证号
+        self.inputWindow.numberCombo.addItems(
+            self.inputWindow.voucherManager.update_voucher_no()
+            )
+
+    def on_queryBtn_clicked(self):
+        """凭证查询功能"""
+        if hasattr(self, "queryWindow") and self.queryWindow.isVisible():
+            self.queryWindow.raise_()
+            self.queryWindow.activateWindow()
+
+        self.queryWindow = Certification() 
+        self.queryWindow.show()
+
+        # 获取全部凭证号
+        self.queryWindow.numberCombo.addItems(
+            self.queryWindow.voucherManager.load_voucher_no()
+            )
+        
+        # 查询已录入的凭证
+        self.queryWindow.numberCombo.setCurrentIndex(-1)
+        self.queryWindow.numberCombo.currentIndexChanged.connect(self.queryWindow.search_voucher)
 
 if __name__ == "__main__":
     app = QApplication([])

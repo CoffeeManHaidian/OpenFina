@@ -476,11 +476,11 @@ class Ui_MainWindow(object):
         self.verticalLayout_7.setSpacing(0)
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
         self.verticalLayout_7.setContentsMargins(0, 0, 0, 0)
-        self.btn_input = QPushButton(self.detCertificate)
-        self.btn_input.setObjectName(u"btn_input")
-        self.btn_input.setMinimumSize(QSize(0, 40))
-        self.btn_input.setMaximumSize(QSize(16777215, 40))
-        self.btn_input.setStyleSheet(u"#btn_input{\n"
+        self.inputBtn = QPushButton(self.detCertificate)
+        self.inputBtn.setObjectName(u"inputBtn")
+        self.inputBtn.setMinimumSize(QSize(0, 40))
+        self.inputBtn.setMaximumSize(QSize(16777215, 40))
+        self.inputBtn.setStyleSheet(u"#inputBtn{\n"
 "	color: rgb(0, 0, 0);\n"
 "}\n"
 "QPushButton{	\n"
@@ -493,15 +493,15 @@ class Ui_MainWindow(object):
 "}")
         icon4 = QIcon()
         icon4.addFile(u":/tittle/icons/excel.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.btn_input.setIcon(icon4)
+        self.inputBtn.setIcon(icon4)
 
-        self.verticalLayout_7.addWidget(self.btn_input)
+        self.verticalLayout_7.addWidget(self.inputBtn)
 
-        self.btn_query = QPushButton(self.detCertificate)
-        self.btn_query.setObjectName(u"btn_query")
-        self.btn_query.setMinimumSize(QSize(0, 40))
-        self.btn_query.setMaximumSize(QSize(16777215, 40))
-        self.btn_query.setStyleSheet(u"QPushButton{	\n"
+        self.queryBtn = QPushButton(self.detCertificate)
+        self.queryBtn.setObjectName(u"queryBtn")
+        self.queryBtn.setMinimumSize(QSize(0, 40))
+        self.queryBtn.setMaximumSize(QSize(16777215, 40))
+        self.queryBtn.setStyleSheet(u"QPushButton{	\n"
 "	background-color: rgb(255, 255, 255);\n"
 "	border:none;\n"
 "	text-align:left;\n"
@@ -509,9 +509,9 @@ class Ui_MainWindow(object):
 "QPushButton:pressed{	\n"
 "	background-color: rgb(241, 241, 241);\n"
 "}")
-        self.btn_query.setIcon(icon4)
+        self.queryBtn.setIcon(icon4)
 
-        self.verticalLayout_7.addWidget(self.btn_query)
+        self.verticalLayout_7.addWidget(self.queryBtn)
 
         self.btn_post = QPushButton(self.detCertificate)
         self.btn_post.setObjectName(u"btn_post")
@@ -675,8 +675,8 @@ class Ui_MainWindow(object):
         self.btn_transaction.setText(QCoreApplication.translate("MainWindow", u" \u5f80\u6765", None))
         self.lineEdit_2.setText(QCoreApplication.translate("MainWindow", u"\u8fd9\u662f\u62a5\u8868", None))
         self.lb_Detail.setText(QCoreApplication.translate("MainWindow", u"\u660e\u7ec6\u529f\u80fd", None))
-        self.btn_input.setText(QCoreApplication.translate("MainWindow", u"01001 \u51ed\u8bc1\u5f55\u5165", None))
-        self.btn_query.setText(QCoreApplication.translate("MainWindow", u"01002 \u51ed\u8bc1\u67e5\u8be2", None))
+        self.inputBtn.setText(QCoreApplication.translate("MainWindow", u"01001 \u51ed\u8bc1\u5f55\u5165", None))
+        self.queryBtn.setText(QCoreApplication.translate("MainWindow", u"01002 \u51ed\u8bc1\u67e5\u8be2", None))
         self.btn_post.setText(QCoreApplication.translate("MainWindow", u"01003 \u51ed\u8bc1\u8fc7\u8d26", None))
         self.btn_summary.setText(QCoreApplication.translate("MainWindow", u"01004 \u51ed\u8bc1\u6c47\u603b", None))
         self.btn_mode.setText(QCoreApplication.translate("MainWindow", u"01005 \u6a21\u5f0f\u51ed\u8bc1", None))

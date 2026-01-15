@@ -8,7 +8,7 @@ class VoucherDetail:
     """凭证分录"""
     detail_id: Optional[int] = None
     voucher_id: int = None
-    line_no: int = 0  # 分录号
+    line_no: int = 0  # 行号
     account_code: str = ""  # 科目编码
     account_name: str = ""  # 科目名称
     debit_amount: float = 0.0  # 借方金额

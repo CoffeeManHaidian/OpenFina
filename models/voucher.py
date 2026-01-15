@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date
 from typing import List, Optional
 from contextlib import contextmanager
-from lib.models import Voucher, VoucherDetail
+from models.data import Voucher, VoucherDetail
 
 class VoucherManager:
     def __init__(self, db_path="finance.db"):
@@ -38,7 +38,7 @@ class VoucherManager:
                     reviewer TEXT,                                  -- 审核人
                     attention TEXT,                                 -- 经办人
                     created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   -- 凭证时间
-                    UNIQUE(voucher_no)
+                    UNIQUE(voucher_id, voucher_no)
                 )
             """)
             
@@ -71,10 +71,11 @@ class VoucherManager:
                 # 新增
                 cursor.execute("""
                     INSERT INTO voucher_master 
-                    (voucher_no, voucher_date, attach_count, preparer, reviewer, attention)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    (voucher_no, voucher_type, voucher_date, attach_count, preparer, reviewer, attention)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
                     voucher.voucher_no,
+                    voucher.voucher_type,
                     voucher.voucher_date,
                     voucher.attach_count,
                     voucher.preparer,
@@ -87,11 +88,12 @@ class VoucherManager:
                 voucher_id = voucher.voucher_id
                 cursor.execute("""
                     UPDATE voucher_master SET
-                    voucher_no = ?, voucher_date = ?, attach_count = ?,
+                    voucher_no = ?, voucher_type = ?, voucher_date = ?, attach_count = ?,
                     preparer = ?, reviewer = ?, attention = ?
                     WHERE voucher_id = ?
                 """, (
                     voucher.voucher_no,
+                    voucher.voucher_type,
                     voucher.voucher_date,
                     voucher.attach_count,
                     voucher.preparer,
@@ -122,7 +124,7 @@ class VoucherManager:
             
             return voucher_id
     
-    def get_voucher(self, voucher_id: int) -> Optional[Voucher]:
+    def search_voucher(self, voucher_id: int) -> Optional[Voucher]:
         """获取单个凭证"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -146,7 +148,7 @@ class VoucherManager:
             voucher = Voucher(
                 voucher_id=master_row['voucher_id'],
                 voucher_no=master_row['voucher_no'],
-                voucher_date=date.fromisoformat(master_row['voucher_date']),
+                voucher_date=master_row['voucher_date'],
                 attach_count=master_row['attach_count'],
                 preparer=master_row['preparer'],
                 reviewer=master_row['reviewer'],
@@ -167,7 +169,7 @@ class VoucherManager:
                     auxiliary=row['auxiliary']
                 ))
             
-            return voucher
+            return voucher        
     
     def search_vouchers(self, start_date=None, end_date=None, voucher_no=None):
         """查询凭证列表"""
@@ -191,3 +193,27 @@ class VoucherManager:
             cursor.execute(query, params)
             
             return cursor.fetchall()
+        
+    def update_voucher_no(self) -> int:
+        """获取下一个可用凭证号"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT MAX(voucher_id) as max_id FROM voucher_master")
+            result = cursor.fetchone()
+
+            max_id = result['max_id'] if result and result['max_id'] else 0
+            # return "{:0>4d}".format(max_id + 1) 
+            return str(max_id + 1)
+            
+    def load_voucher_no(self) -> List[str]:
+        """获取全部凭证号"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # DISTINCT: 消除重复记录
+            # ORDER BY: 按升序或降序排列 默认 ASC 升序, DESC 降序
+            cursor.execute("SELECT DISTINCT voucher_id FROM voucher_master ORDER BY voucher_id")
+            result = cursor.fetchall()
+
+            # 提取凭证号列表
+            voucher_nos = [str(row['voucher_id']) for row in result]
+            return voucher_nos
