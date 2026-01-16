@@ -1,324 +1,369 @@
 import sys
-import hashlib
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout,
-    QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QMessageBox, QFrame, QCheckBox
-)
-from PySide6.QtGui import QFont, QIcon, QPixmap, QPalette, QColor
-from PySide6.QtCore import Qt, QSize
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from PySide6.QtWidgets import (QApplication, QWidget, QMessageBox, QPushButton,
+    QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QSpacerItem, QSizePolicy, 
+    QCheckBox)
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QIcon
+
+from utils.password import PasswdManager
 
 
-class LoginWindow(QMainWindow):
+class LoginWidget(QWidget):
     def __init__(self):
         super().__init__()
+        self.passwdManage = PasswdManager()
         self.setupUi()
+        self.setStyle()
         self.init_slot()
 
     def setupUi(self):
-        """初始化用户界面"""
-        self.setWindowTitle("用户登录系统")
-        self.setFixedSize(400, 500)
-        
-        # 设置应用程序图标
-        # self.setWindowIcon(QIcon(self.create_icon()))
-        
-        # 设置样式
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #f5f7fa;
-            }
-            QLabel {
-                color: #333333;
-            }
-            QLineEdit {
-                border: 2px solid #dcdcdc;
-                border-radius: 8px;
-                font-size: 14px;
-                background-color: white;
-
-            }
-            QLineEdit:focus {
-                border: 2px solid #4d90fe;
-            }
-            QPushButton {
-                background-color: rgb(255, 255, 255);
-                border: none;
-                border-radius: 8px;
-            }
-            QPushButton:hover {
-                background-color: rgba(221, 221, 221, 1);
-            }
-            QPushButton:pressed {
-                background-color: rgba(221, 221, 221, 0.8);
-            }
-
-            QLabel#titleLabel {
-                font-size: 24px;
-            }
-            QLabel#subtitleLabel {
-                font-size: 14px;
-            }
-        """)
-        
-        # 模拟用户数据库 (在实际应用中应使用数据库)
-        self.users = {
-            "admin": self.hash_password("admin123"),  # 用户: admin, 密码: admin123
-            "user": self.hash_password("user123"),    # 用户: user, 密码: user123
-        }
-
-        # 创建中央部件
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        
+        self.setWindowTitle("OpenFina")
+        self.resize(900, 600)
         # 主布局
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(40, 40, 40, 40)
-        main_layout.setSpacing(20)
-        
+        mainLayout = QHBoxLayout()
+
+        ## 左侧边
+        self.leftWidget = QWidget()
+        self.leftWidget.setObjectName("leftWidget")
+        self.leftWidget.setMinimumSize(450, 600)
+        self.leftWidget.setMaximumSize(450, 600)
+        leftLayout = QVBoxLayout(self.leftWidget)
+
+        ## 登录主界面
+        self.rightWidget = QWidget()
+        self.rightWidget.setMinimumSize(450, 600)
+        self.rightWidget.setMaximumSize(450, 600)
+        rightLayout = QVBoxLayout(self.rightWidget)
+
         # 标题
-        title_label = QLabel("用户登录")
-        title_label.setObjectName("titleLabel")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.titleWidget = QWidget()
+        self.titleWidget.setMinimumSize(450, 200)
+        self.titleWidget.setMaximumSize(450, 200)
+        self.titleWidget.setObjectName("titleWidget")
+        titleLayout = QVBoxLayout(self.titleWidget)
+        self.titleLb = QLabel("用户登录")
+        self.titleLb.setObjectName("titleLb")
+        self.subtitleLb = QLabel("请登录您的账户")
+        self.subtitleLb.setObjectName("subtitleLb")
+
+        # 用户名
+        self.inputWidget = QWidget()
+        inputLayout = QVBoxLayout(self.inputWidget)
+        usernameLb = QLabel("用户名")
+        self.usernameLine = QLineEdit()
+        # 密码
+        passwdLayout = QHBoxLayout()
+        passwordLb = QLabel("密码")
+        self.passwordLine = QLineEdit()
+        self.passwordLine.setEchoMode(QLineEdit.Password)
+        # 显示/隐藏密码
+        self.switchBtn = QPushButton()
+        # 初始使用文本
+        self.switchBtn.setText("显示")
+        self.switchBtn.setObjectName("switchBtn")
+        # 记住/忘记密码
+        passBtnLayout = QHBoxLayout()
+        self.keepBox = QCheckBox("记住密码")
+        self.keepBox.setObjectName("keepBox")
+        self.forgetBtn = QPushButton("忘记密码")
+        self.forgetBtn.setObjectName("forgetBtn")
+        # 登录
+        self.loginBtn = QPushButton("登录")
+        # 注册
+        registerLayout = QHBoxLayout()
+        registerLb = QLabel("还没有账户?")
+        self.registerBtn = QPushButton("立即注册")
+        self.registerBtn.setObjectName("registerBtn")
         
-        subtitle_label = QLabel("欢迎回来，请登录您的账户")
-        subtitle_label.setObjectName("subtitleLabel")
-        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # 表单框架
-        form_frame = QFrame()
-        form_frame.setStyleSheet("""
-            QFrame {
+        # 密码可见性状态（不使用checkable）
+        self.password_visible = False
+
+        ## 布局
+        # 标题栏布局
+        titleLayout.addSpacerItem(QSpacerItem(10000, 200, QSizePolicy.Expanding))
+        titleLayout.addWidget(self.titleLb)
+        titleLayout.addWidget(self.subtitleLb)
+        titleLayout.addSpacerItem(QSpacerItem(10000, 200, QSizePolicy.Expanding))
+        titleLayout.setSpacing(0)
+        # 密码
+        passwdLayout.addWidget(self.passwordLine)
+        passwdLayout.addWidget(self.switchBtn)
+        # 记住/忘记密码
+        passBtnLayout.addWidget(self.keepBox)
+        passBtnLayout.addSpacerItem(QSpacerItem(600, 0, QSizePolicy.Expanding))
+        passBtnLayout.addWidget(self.forgetBtn)
+        # 注册
+        registerLayout.addSpacerItem(QSpacerItem(200, 0, QSizePolicy.Expanding))
+        registerLayout.addWidget(registerLb)
+        registerLayout.addWidget(self.registerBtn)
+        registerLayout.addSpacerItem(QSpacerItem(200, 0, QSizePolicy.Expanding))
+        # 输入区布局
+        # inputLayout.addSpacerItem(QSpacerItem(10000, 10, QSizePolicy.Expanding))
+        inputLayout.addWidget(usernameLb)
+        inputLayout.addWidget(self.usernameLine)
+        inputLayout.addSpacerItem(QSpacerItem(10000, 20, QSizePolicy.Expanding))
+        inputLayout.addWidget(passwordLb)
+        inputLayout.addLayout(passwdLayout)
+        inputLayout.addLayout(passBtnLayout)
+        inputLayout.addSpacerItem(QSpacerItem(10000, 20, QSizePolicy.Expanding))
+        inputLayout.addWidget(self.loginBtn)
+        inputLayout.addLayout(registerLayout)
+        inputLayout.addSpacerItem(QSpacerItem(10000, 100, QSizePolicy.Expanding))
+        # 右侧布局
+        rightLayout.addWidget(self.titleWidget)
+        rightLayout.addWidget(self.inputWidget)
+        # 主布局
+        mainLayout.addWidget(self.leftWidget)
+        mainLayout.addWidget(self.rightWidget)
+        mainLayout.setContentsMargins(0,0,0,0)
+        mainLayout.setSpacing(0)
+
+        self.setLayout(mainLayout)
+
+    def setStyle(self):
+        """样式设置"""
+        self.setStyleSheet("""
+            /* 主窗口边框弧度 */
+            LoginWidget {
+                border-radius: 10px;
                 background-color: white;
-                border-radius: 12px;
             }
-        """)
-        
-        form_layout = QVBoxLayout(form_frame)
-        form_layout.setSpacing(15)
-        
-        # 用户名输入
-        username_layout = QVBoxLayout()
-        username_layout.setSpacing(5)
-        
-        username_label = QLabel("用户名")
-        username_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        
-        self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("请输入用户名")
-        self.username_input.setMinimumHeight(40)
-        
-        username_layout.addWidget(username_label)
-        username_layout.addWidget(self.username_input)
-        
-        # 密码输入
-        password_layout = QVBoxLayout()
-        password_layout.setSpacing(5)
-        
-        password_label = QLabel("密码")
-        password_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        
-        self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("请输入密码")
-        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_input.setMinimumHeight(40)
-        
-        password_layout.addWidget(password_label)
-        password_layout.addWidget(self.password_input)
-        
-        # 记住密码和忘记密码
-        options_layout = QHBoxLayout()
-        
-        self.remember_checkbox = QCheckBox("记住密码")
-        
-        self.forgot_password_btn = QPushButton("忘记密码?")
-        self.forgot_password_btn.setFlat(True)
-        self.forgot_password_btn.setStyleSheet("""
+            
+            /* 左侧面板 */
+            #leftWidget {
+                background-color: rgb(243, 243, 243);
+                border-top-left-radius: 10px;
+                border-bottom-left-radius: 10px;
+            }
+            
+            /* 标题标签居中 */
+            #titleLb {
+                font-size: 28px;
+                font-weight: bold;
+                color: #333333;
+                qproperty-alignment: 'AlignCenter';
+            }
+            
+            /* 副标题标签居中 */
+            #subtitleLb {
+                font-size: 16px;
+                color: #666666;
+                qproperty-alignment: 'AlignCenter';
+                margin-top: 10px;
+            }
+            
+            /* 标题容器 */
+            #titleWidget {
+                background-color: transparent;
+            }
+            
+            /* 输入框样式 */
+            QLineEdit {
+                border: 1px solid #cccccc;
+                border-radius: 5px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            /* 按钮样式 */
             QPushButton {
-                color: #4d90fe;
+                background-color: #007bff;
+                color: white;
                 border: none;
-                font-size: 13px;
-                text-align: right;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 16px;
+                font-weight: bold;
             }
+            
             QPushButton:hover {
-                color: #357ae8;
+                background-color: #0056b3;
+            }
+                           
+            /* 记住密码 */
+            QCheckBox#keepBox {
+                background-color: transparent;
+                border: none;
+                font-size: 12px;
+                color: #666666;
+                spacing: 5px;
+            }
+            
+            QCheckBox#keepBox::indicator {
+                width: 12px;
+                height: 12px;
+            }
+            
+            QCheckBox#keepBox::indicator:unchecked {
+                border: 1px solid #cccccc;
+                border-radius: 2px;
+                background-color: white;
+            }
+            
+            QCheckBox#keepBox::indicator:checked {
+                border: 1px solid #007bff;
+                border-radius: 2px;
+                background-color: #007bff;
+            }
+            
+            /* 忘记密码 */
+            QPushButton#forgetBtn {
+                background-color: transparent;
+                border: none;
+                font-size: 12px;
+                color: #666666;
+                text-decoration: underline;
+                padding: 0px;
+                margin: 0px;
+            }
+            
+            QPushButton#forgetBtn:hover {
+                color: #007bff;
                 text-decoration: underline;
             }
-        """)
-        
-        options_layout.addWidget(self.remember_checkbox)
-        options_layout.addStretch()
-        options_layout.addWidget(self.forgot_password_btn)
-        
-        # 登录按钮
-        self.login_btn = QPushButton("登录")
-        self.login_btn.setMinimumHeight(45)
-        
-        # 注册提示
-        register_layout = QHBoxLayout()
-        register_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        register_label = QLabel("还没有账户?")
-        
-        self.register_btn = QPushButton("立即注册")
-        self.register_btn.setObjectName("registerBtn")
-        self.register_btn.setFixedSize(100, 35)
-        
-        register_layout.addWidget(register_label)
-        register_layout.addWidget(self.register_btn)
-        
-        # 添加所有组件到表单布局
-        form_layout.addLayout(username_layout)
-        form_layout.addLayout(password_layout)
-        form_layout.addLayout(options_layout)
-        form_layout.addSpacing(10)
-        form_layout.addWidget(self.login_btn)
-        
-        # 添加所有组件到主布局
-        main_layout.addWidget(title_label)
-        main_layout.addWidget(subtitle_label)
-        main_layout.addWidget(form_frame)
-        main_layout.addLayout(register_layout)
-        main_layout.addStretch()
+            
+            QPushButton#forgetBtn:pressed {
+                color: #0056b3;
+                text-decoration: underline;
+            }
+                           
+            /* 注册密码 */
+            QPushButton#registerBtn {
+                background-color: transparent;
+                border: none;
+                font-size: 12px;
+                color: #666666;
+                text-decoration: underline;
+                padding: 0px;
+                margin: 0px;           
+            }
+                           
+            QPushButton#registerBtn:hover {
+                color: #007bff;
+                text-decoration: underline;
+            }
+            
+            QPushButton#registerBtn:pressed {
+                color: #0056b3;
+                text-decoration: underline;
+            }
 
+            /* 显示he隐藏 */              
+            QPushButton#switchBtn {
+                background-color: transparent;
+                border: none;
+                padding: 5px;
+                min-width: 30px;
+                min-height: 30px;
+            }
+                           
+            QPushButton#switchBtn:hover {
+                background-color: rgba(0, 0, 0, 0.1);
+                border-radius: 3px;
+            }
+                           
+            QPushButton#switchBtn:pressed {
+                background-color: rgba(0, 0, 0, 0.15);
+            }
+"""
+        )
+        
     def init_slot(self):
-        # 记住密码功能
-        self.remember_password = False
-        self.load_saved_credentials()
+        """绑定信号与槽"""
+        self.registerBtn.clicked.connect(self.on_registerBtn_clicked)
+        self.loginBtn.clicked.connect(self.on_loginBtn_clicked)
+        self.switchBtn.clicked.connect(self.switch_password_visibility)
+        
+        # 初始状态
+        self.update_password_visibility()
 
-        self.remember_checkbox.stateChanged.connect(self.on_remember_changed)
-        self.login_btn.clicked.connect(self.on_login)
-        self.register_btn.clicked.connect(self.on_register)
-        self.forgot_password_btn.clicked.connect(self.on_forgot_password)
-        
-    
-    def hash_password(self, password):
-        """对密码进行哈希处理"""
-        return hashlib.sha256(password.encode()).hexdigest()
-    
-    def on_login(self):
-        """处理登录按钮点击事件"""
-        username = self.username_input.text().strip()
-        password = self.password_input.text().strip()
-        
-        # 验证输入
-        if not username:
-            self.show_error("请输入用户名")
-            self.username_input.setFocus()
+    def on_registerBtn_clicked(self):
+        """注册"""
+        # 获取用户名和密码
+        username = self.usernameLine.text().strip()
+        password = self.passwordLine.text().strip()
+
+        if not username or not password:
+            QMessageBox.warning(self, "错误", "用户名和密码不能为空")
             return
         
-        if not password:
-            self.show_error("请输入密码")
-            self.password_input.setFocus()
+        self.passwdManage.cursor.execute(
+            "SELECT id FROM users WHERE username = ?",
+            (username,)
+        )
+        result = self.passwdManage.cursor.fetchone()
+        if result:
+            QMessageBox(self, "错误", "用户名已存在")
             return
         
-        # 验证用户名和密码
-        if username in self.users:
-            hashed_password = self.hash_password(password)
-            if self.users[username] == hashed_password:
-                # 登录成功
-                self.save_credentials(username, password)
-                self.show_success(f"登录成功！欢迎回来，{username}。")
-                
-                # 在实际应用中，这里会跳转到主界面
-                # 现在只是显示成功消息并关闭窗口
-                self.close()
-            else:
-                self.show_error("密码错误，请重试")
-                self.password_input.clear()
-                self.password_input.setFocus()
-        else:
-            self.show_error("用户名不存在")
-            self.username_input.setFocus()
-    
-    def on_register(self):
-        """处理注册按钮点击事件"""
-        QMessageBox.information(
-            self, 
-            "注册功能", 
-            "注册功能正在开发中，敬请期待！\n\n"
-            "当前测试账户：\n"
-            "用户名: admin, 密码: admin123\n"
-            "用户名: user, 密码: user123"
-        )
-    
-    def on_forgot_password(self):
-        """处理忘记密码按钮点击事件"""
-        QMessageBox.information(
-            self, 
-            "找回密码", 
-            "密码找回功能正在开发中，敬请期待！\n\n"
-            "请联系系统管理员重置密码。"
-        )
-    
-    def on_remember_changed(self, state):
-        """处理记住密码复选框状态改变"""
-        self.remember_password = (state == Qt.CheckState.Checked.value)
-    
-    def save_credentials(self, username, password):
-        """保存用户凭证"""
-        if self.remember_password:
-            # 在实际应用中，应该使用安全的方式存储凭证
-            # 这里只是简单演示
-            with open("credentials.txt", "w") as f:
-                f.write(f"{username}\n{password}")
-        else:
-            # 清除保存的凭证
-            try:
-                import os
-                os.remove("credentials.txt")
-            except:
-                pass
-    
-    def load_saved_credentials(self):
-        """加载保存的用户凭证"""
         try:
-            with open("credentials.txt", "r") as f:
-                lines = f.readlines()
-                if len(lines) >= 2:
-                    username = lines[0].strip()
-                    password = lines[1].strip()
-                    
-                    self.username_input.setText(username)
-                    self.password_input.setText(password)
-                    self.remember_checkbox.setChecked(True)
-                    self.remember_password = True
-        except:
-            # 文件不存在或读取错误
-            pass
-    
-    def show_error(self, message):
-        """显示错误消息"""
-        QMessageBox.critical(self, "登录失败", message)
-    
-    def show_success(self, message):
-        """显示成功消息"""
-        QMessageBox.information(self, "登录成功", message)
-    
-    def closeEvent(self, event):
-        """窗口关闭事件"""
-        reply = QMessageBox.question(
-            self, 
-            "确认退出", 
-            "确定要退出登录系统吗？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-        
-        if reply == QMessageBox.StandardButton.Yes:
-            event.accept()
+            password_hash = self.passwdManage.hash_password(password)
+            salt = ""  # bcrypt的盐包含在哈希中
+            
+            # 存储到数据库
+            self.passwdManage.cursor.execute(
+                "INSERT INTO users (username, password, salt) VALUES (?, ?, ?)",
+                (username, password_hash, salt)
+            )
+            self.passwdManage.conn.commit()
+            
+            QMessageBox.information(self, "成功", "用户注册成功！")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"注册失败: {str(e)}")
+            print(f"注册失败: {str(e)}")
+
+
+    def update_password_visibility(self):
+        """更新密码可见性状态"""
+        if self.password_visible:
+            self.passwordLine.setEchoMode(QLineEdit.Normal)
+            self.switchBtn.setText("隐藏")
         else:
-            event.ignore()
+            self.passwordLine.setEchoMode(QLineEdit.Password)
+            self.switchBtn.setText("显示")
+    
+    def switch_password_visibility(self):
+        """切换密码可见性"""
+        # 切换状态
+        self.password_visible = not self.password_visible
+        self.update_password_visibility()
 
+    def on_loginBtn_clicked(self):
+        """登录"""
+        # 获取用户名和密码
+        username = self.usernameLine.text().strip()
+        password = self.passwordLine.text().strip()
 
-def main():
-    """主函数"""
-    app = QApplication([])
-    window = LoginWindow()
+        if not username or not password:
+            QMessageBox.warning(self, "错误", "请输入用户名和密码")
+            return
+        
+        self.passwdManage.cursor.execute(
+            "SELECT password, salt FROM users WHERE username = ?",
+            (username,)
+        )
+        result = self.passwdManage.cursor.fetchone()
 
-    window.show()    
-    app.exec()
+        if not result:
+            QMessageBox.warning(self, "错误", "用户不存在")
+            return
+        
+        hash, salt = result
+        is_valid = self.passwdManage.verify_password(password, hash)
+
+        if is_valid:
+            QMessageBox.information(self, "成功", "登录成功!")
+        else:
+            QMessageBox.warning(self, "错误", "用户名或密码错误")
 
 
 if __name__ == "__main__":
-    main()
+    app = QApplication([])
+    window = LoginWidget()
+
+    window.show()
+    app.exec()
