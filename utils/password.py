@@ -5,13 +5,14 @@ import secrets
 
 
 class PasswdManager:
-    def __init__(self):
+    def __init__(self, db_path):
         super().__init__()
+        self.db_path = db_path
         self.init_db()
 
     def init_db(self):
         """初始化数据库"""
-        self.conn = sqlite3.connect('data/users.db')
+        self.conn = sqlite3.connect(self.db_path)
         self.cursor = self.conn.cursor()
 
         # 创建用户表

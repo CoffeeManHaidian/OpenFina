@@ -8,8 +8,9 @@ from PySide6.QtCore import QSize
 from ui.certificate import Certification
 
 class MyWindow(QMainWindow, Ui_MainWindow):
-    def __init__(self):
+    def __init__(self, username):
         super().__init__()
+        self.username = username
 
         self.setupUi(self)
         # 设置窗口无边框
