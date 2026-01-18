@@ -417,6 +417,7 @@ class AutoWidget(QWidget):
         middleLayout = QVBoxLayout(self.middleWidget)
         middleLayout.setContentsMargins(0,20,0,50)
         self.userLb = QLabel()
+        # self.userLb.setObjectName("userLb")
         self.userLb.setPixmap(QPixmap(rf"icons\user.png"))
         self.usernameLb = QLabel(self.username)
         self.usernameLb.setObjectName("usernameLb")
@@ -501,17 +502,21 @@ class AutoWidget(QWidget):
 
 def load_settings():        
     """加载软件配置"""
-    with open(rf"data\settings.json", 'r', encoding='utf-8') as f:
-        settings = json.load(f)
+    if os.path.exists(rf"data\settings.json"):
+        with open(rf"data\settings.json", 'r', encoding='utf-8') as f:
+            settings = json.load(f)
     
-    if settings['remember_state']:
-        return True
+        if settings['remember_state']:
+            return True
+        else:
+            return False
+    
     else:
         return False
 
 
 if __name__ == "__main__":
-    is_remember = load_settings
+    is_remember = load_settings()
 
     app = QApplication([])
     if is_remember:
