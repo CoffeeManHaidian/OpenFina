@@ -21,7 +21,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # 初始化槽函数
         self.init_solt()
 
-    def btn_max_clicked(self):
+    def on_maxBtn_clicked(self):
         """最大化窗口"""
 
         if self.isMaximized():
@@ -51,7 +51,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def double_clicked_border_bar(self, event):
         """双击顶部标题条,使其在最大化和还原之间切换"""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.resize_maximize()      
+            self.on_maxBtn_clicked()      
 
     def move_title_bar(self, event):
         """拖动顶部标题条"""
@@ -61,7 +61,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         """使模拟边框的3个按钮生效(关闭、最小化、最大化、双击标题框)"""
         self.btn_close.clicked.connect(self.close)  # 关闭按钮
         self.btn_min.clicked.connect(self.showMinimized)  # 最小化按钮
-        self.btn_max.clicked.connect(self.btn_max_clicked)  # 最大化按钮
+        self.btn_max.clicked.connect(self.on_maxBtn_clicked)  # 最大化按钮
         # 设置可拖动（通过拖动窗口上的横条来达到拖动窗口的效果）
         self.TittleBar.mouseDoubleClickEvent = self.double_clicked_border_bar
         self.TittleBar.mouseMoveEvent = self.move_title_bar
@@ -92,7 +92,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.inputWindow.raise_()
             self.inputWindow.activateWindow()
 
-        self.inputWindow = Certification() 
+        self.inputWindow = Certification(self.username, 1) 
         self.inputWindow.show()
 
         # 获取最新凭证号
@@ -106,7 +106,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.queryWindow.raise_()
             self.queryWindow.activateWindow()
 
-        self.queryWindow = Certification() 
+        self.queryWindow = Certification(self.username, 2) 
         self.queryWindow.show()
 
         # 获取全部凭证号
@@ -116,7 +116,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         
         # 查询已录入的凭证
         self.queryWindow.numberCombo.setCurrentIndex(-1)
-        self.queryWindow.numberCombo.currentIndexChanged.connect(self.queryWindow.search_voucher)
+        self.queryWindow.numberCombo.currentIndexChanged.connect(self.queryWindow.load_voucher)
 
 if __name__ == "__main__":
     app = QApplication([])

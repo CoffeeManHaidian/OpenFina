@@ -16,8 +16,10 @@ from models.data import Voucher, VoucherDetail
 
 
 class Certification(QWidget):
-    def __init__(self):
+    def __init__(self, username, function):
         super().__init__()
+        self.username = username
+        self.function = function
         self.current_date = QDate.currentDate()
         current_month = self.current_date.toString("yyyyMM")
         self.voucherManager = VoucherManager(rf"data\{current_month}.db")
@@ -36,11 +38,19 @@ class Certification(QWidget):
 
         self.companyLb = f"Open公司"
         self.voucherLb = f"{date_str}"
-        self.review = ""
+        
         self.post = ""
+        self.preparer = self.username
+        self.review = ""
         self.cashier = ""
-        self.preparer = f"张三"
         self.approve = ""
+
+        if self.function == 1:
+            # 凭证录入
+            self.preparer = self.username
+        elif self.function == 3:
+            # 凭证过账
+            self.post = ""
 
     def setupUI(self):
         """设置表格UI"""
@@ -329,7 +339,7 @@ class Certification(QWidget):
         self.btnSave.clicked.connect(self.on_btnSave_clicked)
         self.btnCancel.clicked.connect(self.on_btnCancel_clicked)
         # 查询已录入的凭证
-        # self.numberCombo.currentIndexChanged.connect(self.search_voucher)
+        # self.numberCombo.currentIndexChanged.connect(self.load_voucher)
 
     def on_itemChanged(self, item):
         """单元格内容改变时触发"""
@@ -462,10 +472,15 @@ class Certification(QWidget):
             credit_value = self.table.item(row, 4)
             if debit_value and debit_value.text():
                 debit_value = float(debit_value.text().replace(",", ""))
+            else:
+                debit_value = 0.0
             if credit_value and credit_value.text():
                 credit_value = float(credit_value.text().replace(",", ""))  
+            else:
+                credit_value = 0.0
 
-            if debit_value != 0.0 or credit_value != 0.0:
+            if debit_value or credit_value:
+                print(self.table.item(row, 1).text().split(" "))
                 detail = VoucherDetail(
                     line_no=row,
                     account_code=self.table.item(row, 1).text().split(" ")[0],
@@ -480,7 +495,7 @@ class Certification(QWidget):
 
         try:
             index = self.voucherManager.save_voucher(voucher)
-            QMessageBox.information(self, "成功", f"凭证{index:0>4d}保存成功！")
+            QMessageBox.information(self, "成功", f"凭证{index}保存成功！")
         except Exception as e:
             print(f"凭证保存失败{str(e)}")
             QMessageBox.critical(self, "错误", f"凭证保存失败{str(e)}")
@@ -491,26 +506,56 @@ class Certification(QWidget):
     def on_btnCancel_clicked(self):
         self.close()
 
-    def search_voucher(self):
+    def load_voucher(self):
         """加载以录入的凭证"""
         index = self.numberCombo.currentText()
-        voucher = self.voucherManager.search_voucher(index)
+        if not index == -1:
+            voucher = self.voucherManager.search_voucher(index)
         
-        # 业务日期
-        self.dateBtnLabel.setText(voucher.voucher_date)
-        # 制单人
-        self.preparerLb.setText(voucher.preparer)
-        for row in range(len(voucher.details)):
-            detail = voucher.details[row]
-            # 摘要
-            self.table.setItem(row, 0, QTableWidgetItem(detail.summary))
-            # 科目
-            subject = f"{detail.account_code} {detail.account_name}"
-            self.table.setItem(row, 1, QTableWidgetItem(subject))
-            # 借方金额
-            self.table.setItem(row, 2, QTableWidgetItem(str(detail.debit_amount)))
-            # 贷方金额
-            self.table.setItem(row, 4, QTableWidgetItem(str(detail.credit_amount)))
+            self.table.clearContents()
+            # self.setupUI()
+            # 业务日期
+            self.dateBtnLabel.setText(voucher.voucher_date)
+            # 制单人
+            self.preparerLb.setText(voucher.preparer)
+            
+            # 重新创建复选框（第3列和第5列）
+            for r in range(self.table.rowCount() - 1):  # 不含合计行
+                left_cb = QTableWidgetItem()
+                left_cb.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                left_cb.setCheckState(Qt.Unchecked)
+                self.table.setItem(r, 3, left_cb)
+
+                right_cb = QTableWidgetItem()
+                right_cb.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                right_cb.setCheckState(Qt.Unchecked)
+                self.table.setItem(r, 5, right_cb)
+            
+            # 设置凭证详情
+            for row in range(len(voucher.details)):
+                detail = voucher.details[row]
+                # 摘要
+                self.table.setItem(row, 0, QTableWidgetItem(detail.summary))
+                # 科目（设置为只读）
+                subject = f"{detail.account_code} {detail.account_name}"
+                subject_item = QTableWidgetItem(subject)
+                subject_item.setFlags(subject_item.flags() & ~Qt.ItemIsEditable)
+                self.table.setItem(row, 1, subject_item)
+                # 借方金额
+                self.table.setItem(row, 2, QTableWidgetItem(str(detail.debit_amount)))
+                # 贷方金额
+                self.table.setItem(row, 4, QTableWidgetItem(str(detail.credit_amount)))
+            
+            # 为剩余的数据行设置默认科目单元格（只读）
+            for row in range(len(voucher.details), self.table.rowCount() - 1):
+                subjectItem = QTableWidgetItem("按F2")
+                subjectItem.setForeground(QColor(150, 150, 150))
+                subjectItem.setBackground(QColor(240, 240, 240))
+                subjectItem.setFlags(subjectItem.flags() & ~Qt.ItemIsEditable)
+                self.table.setItem(row, 1, subjectItem)
+            
+            # 计算并更新合计
+            self.calculate_totals()
 
 
 if __name__ == "__main__":

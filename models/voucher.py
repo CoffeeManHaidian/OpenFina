@@ -1,5 +1,6 @@
 # database.py
 import sqlite3
+import os
 from datetime import date
 from typing import List, Optional
 from contextlib import contextmanager
@@ -67,7 +68,13 @@ class VoucherManager:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            if voucher.voucher_id is None:
+            cursor.execute(
+                "SELECT voucher_id FROM voucher_master WHERE voucher_no = ?",
+                (voucher.voucher_no,)
+                )
+            result = cursor.fetchone()
+
+            if result is None:
                 # 新增
                 cursor.execute("""
                     INSERT INTO voucher_master 
@@ -102,7 +109,7 @@ class VoucherManager:
                     voucher_id
                 ))
                 # 删除旧的明细
-                cursor.execute("DELETE FROM voucher_details WHERE voucher_id = ?", (voucher_id,))
+                # cursor.execute("DELETE FROM voucher_details WHERE voucher_id = ?", (voucher_id,))
             
             # 插入明细
             for i, detail in enumerate(voucher.details):
