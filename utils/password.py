@@ -19,9 +19,9 @@ class PasswdManager:
         self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS users(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company TEXT NOT NULL,
                     username TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
-                    salt TEXT NOT NULL,
                     create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
         ''')

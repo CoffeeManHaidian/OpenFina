@@ -52,29 +52,37 @@ class LoginWidget(QWidget):
         self.subtitleLb = QLabel("请登录您的账户")
         self.subtitleLb.setObjectName("subtitleLb")
 
-        # 用户名
+        # 用户信息
         self.inputWidget = QWidget()
         inputLayout = QVBoxLayout(self.inputWidget)
+        ## 公司
+        companyLb = QLabel("公司")
+        self.companyLine = QLineEdit()
+        ## 用户名
         usernameLb = QLabel("用户名")
         self.usernameLine = QLineEdit()
-        # 密码
+        ## 密码
         passwdLayout = QHBoxLayout()
         passwordLb = QLabel("密码")
         self.passwordLine = QLineEdit()
         self.passwordLine.setEchoMode(QLineEdit.Password)
-        # 显示/隐藏密码
+
+        ## 显示/隐藏密码
         self.switchBtn = QPushButton()
-        # 初始使用文本
+        ### 初始使用文本
         self.switchBtn.setText("显示")
         self.switchBtn.setObjectName("switchBtn")
+
         # 记住/忘记密码
         passBtnLayout = QHBoxLayout()
         self.keepBox = QCheckBox("记住密码")
         self.keepBox.setObjectName("keepBox")
         self.forgetBtn = QPushButton("忘记密码")
         self.forgetBtn.setObjectName("forgetBtn")
+
         # 登录
         self.loginBtn = QPushButton("登录")
+
         # 注册
         registerLayout = QHBoxLayout()
         registerLb = QLabel("还没有账户?")
@@ -84,27 +92,30 @@ class LoginWidget(QWidget):
         # 密码可见性状态（不使用checkable）
         self.password_visible = False
 
-        ## 布局
-        # 标题栏布局
+        # 布局
+        ## 标题栏布局
         titleLayout.addSpacerItem(QSpacerItem(10000, 200, QSizePolicy.Expanding))
         titleLayout.addWidget(self.titleLb)
         titleLayout.addWidget(self.subtitleLb)
         titleLayout.addSpacerItem(QSpacerItem(10000, 200, QSizePolicy.Expanding))
         titleLayout.setSpacing(0)
-        # 密码
+        ## 密码
         passwdLayout.addWidget(self.passwordLine)
         passwdLayout.addWidget(self.switchBtn)
-        # 记住/忘记密码
+        ## 记住/忘记密码
         passBtnLayout.addWidget(self.keepBox)
         passBtnLayout.addSpacerItem(QSpacerItem(600, 0, QSizePolicy.Expanding))
         passBtnLayout.addWidget(self.forgetBtn)
-        # 注册
+        ## 注册
         registerLayout.addSpacerItem(QSpacerItem(200, 0, QSizePolicy.Expanding))
         registerLayout.addWidget(registerLb)
         registerLayout.addWidget(self.registerBtn)
         registerLayout.addSpacerItem(QSpacerItem(200, 0, QSizePolicy.Expanding))
-        # 输入区布局
+        ## 输入区布局
         # inputLayout.addSpacerItem(QSpacerItem(10000, 10, QSizePolicy.Expanding))
+        inputLayout.addWidget(companyLb)
+        inputLayout.addWidget(self.companyLine)
+        inputLayout.addSpacerItem(QSpacerItem(10000, 20, QSizePolicy.Expanding))
         inputLayout.addWidget(usernameLb)
         inputLayout.addWidget(self.usernameLine)
         inputLayout.addSpacerItem(QSpacerItem(10000, 20, QSizePolicy.Expanding))
@@ -304,12 +315,11 @@ class LoginWidget(QWidget):
         
         try:
             password_hash = self.passwdManage.hash_password(self.password)
-            salt = ""  # bcrypt的盐包含在哈希中
             
             # 存储到数据库
             self.passwdManage.cursor.execute(
-                "INSERT INTO users (username, password, salt) VALUES (?, ?, ?)",
-                (self.username, password_hash, salt)
+                "INSERT INTO users (company, username, password) VALUES (?, ?, ?)",
+                (self.company, self.username, password_hash)
             )
             self.passwdManage.conn.commit()
             
@@ -336,6 +346,7 @@ class LoginWidget(QWidget):
     def on_loginBtn_clicked(self):
         """登录"""
         # 获取用户名和密码
+        self.company = self.companyLine.text().strip()
         self.username = self.usernameLine.text().strip()
         self.password = self.passwordLine.text().strip()
 
@@ -344,7 +355,7 @@ class LoginWidget(QWidget):
             return
         
         self.passwdManage.cursor.execute(
-            "SELECT password, salt FROM users WHERE username = ?",
+            "SELECT password FROM users WHERE username = ?",
             (self.username,)
         )
         result = self.passwdManage.cursor.fetchone()
@@ -353,8 +364,8 @@ class LoginWidget(QWidget):
             QMessageBox.warning(self, "错误", "用户不存在")
             return
         
-        hash, salt = result
-        is_valid = self.passwdManage.verify_password(self.password, hash)
+        hash = result
+        is_valid = self.passwdManage.verify_password(self.password, hash[0])
 
         if is_valid:
             # QMessageBox.information(self, "成功", "登录成功!")
@@ -365,7 +376,7 @@ class LoginWidget(QWidget):
 
     def switch_2_main(self):
         """跳转到主界面"""
-        MainWindow = MyWindow(self.username)
+        MainWindow = MyWindow(self.username, self.company)
         MainWindow.show()
 
         self.close()
@@ -421,6 +432,8 @@ class AutoWidget(QWidget):
         self.userLb.setPixmap(QPixmap(rf"icons\user.png"))
         self.usernameLb = QLabel(self.username)
         self.usernameLb.setObjectName("usernameLb")
+        self.companyLb = QLabel(self.company)
+        self.companyLb.setObjectName("companyLb")
         self.confirmBtn = QPushButton("确认登录")
         self.cancelBtn = QPushButton("取消登录")
 
@@ -433,6 +446,7 @@ class AutoWidget(QWidget):
         ## 布局
         middleLayout.addWidget(self.userLb)
         middleLayout.addWidget(self.usernameLb)
+        middleLayout.addWidget(self.companyLb)
         middleLayout.addSpacerItem(QSpacerItem(300, 100, QSizePolicy.Expanding))
         middleLayout.addWidget(self.confirmBtn)
         middleLayout.addWidget(self.cancelBtn)
@@ -450,6 +464,13 @@ class AutoWidget(QWidget):
             #usernameLb {
             font-size: 28px;
             font-weight: bold;
+            color: #333333;
+            qproperty-alignment: 'AlignCenter';
+            }
+                           
+            #companyLb {
+            font-size: 20px;
+            font-weight: norm;
             color: #333333;
             qproperty-alignment: 'AlignCenter';
             }
@@ -472,6 +493,7 @@ class AutoWidget(QWidget):
             #userLb {
                 background-image: url(:/image/a.png);
             }
+            
         """)
 
     def init_slot(self):
@@ -481,7 +503,7 @@ class AutoWidget(QWidget):
 
     def on_confirmBtn_clicked(self):
         """确认登录"""
-        MainWindow = MyWindow(self.username)
+        MainWindow = MyWindow(self.username, self.company)
         MainWindow.show()
 
         self.close()
@@ -498,6 +520,17 @@ class AutoWidget(QWidget):
             settings = json.load(f)
         
         self.username = settings['username']
+
+        self.passwdManage.cursor.execute(
+            "SELECT company FROM users WHERE username = ?",
+            (self.username,)
+            )
+        result = self.passwdManage.cursor.fetchone()
+
+        if result:
+            self.company = result[0]
+        else:
+            QMessageBox.warning(self, "错误", "该用户未录入公司，请联系公司管理员")
         
 
 def load_settings():        

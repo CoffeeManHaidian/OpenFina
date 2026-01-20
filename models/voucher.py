@@ -1,9 +1,11 @@
 # database.py
 import sqlite3
 import os
-from datetime import date
+# from datetime import date, timedelta
 from typing import List, Optional
 from contextlib import contextmanager
+from PySide6.QtCore import QDate
+
 from models.data import Voucher, VoucherDetail
 
 class VoucherManager:
@@ -201,26 +203,50 @@ class VoucherManager:
             
             return cursor.fetchall()
         
-    def update_voucher_no(self) -> int:
+    def update_voucher_no(self, date) -> int:
         """获取下一个可用凭证号"""
+        # 当月的起止日期
+        year = date.year()
+        month = date.month()
+        first_date = QDate(year, month, 1)
+        last_date = QDate(year, month+1, 1).addDays(-1)
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT MAX(voucher_id) as max_id FROM voucher_master")
+            cursor.execute(
+                "SELECT MAX(voucher_no) as max_no FROM voucher_master \
+                WHERE voucher_date >= ? AND voucher_date <= ?",
+                (first_date.toString("yyyy-MM-dd"), last_date.toString("yyyy-MM-dd"),)
+                )
             result = cursor.fetchone()
 
-            max_id = result['max_id'] if result and result['max_id'] else 0
-            # return "{:0>4d}".format(max_id + 1) 
-            return str(max_id + 1)
+            # 最大编号
+            max_id = result['max_no'] if result and result['max_no'] else 0
+            number = int(max_id.split("-")[2])
+
+            return str(number + 1)
             
-    def load_voucher_no(self) -> List[str]:
+    def load_voucher_no(self, date) -> List[str]:
         """获取全部凭证号"""
+        # 当月的起止日期
+        year = date.year()
+        month = date.month()
+        first_date = QDate(year, month, 1)
+        last_date = QDate(year, month+1, 1).addDays(-1)
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             # DISTINCT: 消除重复记录
             # ORDER BY: 按升序或降序排列 默认 ASC 升序, DESC 降序
-            cursor.execute("SELECT DISTINCT voucher_id FROM voucher_master ORDER BY voucher_id")
+            # cursor.execute("SELECT DISTINCT voucher_no FROM voucher_master ORDER BY voucher_no")
+            cursor.execute(
+                "SELECT DISTINCT voucher_no FROM voucher_master \
+                WHERE voucher_date >= ? AND voucher_date <= ? \
+                ORDER BY voucher_no ASC",
+                (first_date.toString("yyyy-MM-dd"), last_date.toString("yyyy-MM-dd"),)
+                )
             result = cursor.fetchall()
 
             # 提取凭证号列表
-            voucher_nos = [str(row['voucher_id']) for row in result]
+            voucher_nos = [str(row['voucher_no'].split("-")[2]) for row in result]
             return voucher_nos

@@ -480,7 +480,7 @@ class Ui_MainWindow(object):
         self.inputBtn.setObjectName(u"inputBtn")
         self.inputBtn.setMinimumSize(QSize(0, 40))
         self.inputBtn.setMaximumSize(QSize(16777215, 40))
-        self.inputBtn.setStyleSheet(u"#inputBtn{\n"
+        self.inputBtn.setStyleSheet(u"#btn_input{\n"
 "	color: rgb(0, 0, 0);\n"
 "}\n"
 "QPushButton{	\n"
@@ -513,11 +513,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_7.addWidget(self.queryBtn)
 
-        self.btn_post = QPushButton(self.detCertificate)
-        self.btn_post.setObjectName(u"btn_post")
-        self.btn_post.setMinimumSize(QSize(0, 40))
-        self.btn_post.setMaximumSize(QSize(16777215, 40))
-        self.btn_post.setStyleSheet(u"QPushButton{	\n"
+        self.postBtn = QPushButton(self.detCertificate)
+        self.postBtn.setObjectName(u"postBtn")
+        self.postBtn.setMinimumSize(QSize(0, 40))
+        self.postBtn.setMaximumSize(QSize(16777215, 40))
+        self.postBtn.setStyleSheet(u"QPushButton{	\n"
 "	background-color: rgb(255, 255, 255);\n"
 "	border:none;\n"
 "	text-align:left;\n"
@@ -525,15 +525,15 @@ class Ui_MainWindow(object):
 "QPushButton:pressed{	\n"
 "	background-color: rgb(241, 241, 241);\n"
 "}")
-        self.btn_post.setIcon(icon4)
+        self.postBtn.setIcon(icon4)
 
-        self.verticalLayout_7.addWidget(self.btn_post)
+        self.verticalLayout_7.addWidget(self.postBtn)
 
-        self.btn_summary = QPushButton(self.detCertificate)
-        self.btn_summary.setObjectName(u"btn_summary")
-        self.btn_summary.setMinimumSize(QSize(0, 40))
-        self.btn_summary.setMaximumSize(QSize(16777215, 40))
-        self.btn_summary.setStyleSheet(u"QPushButton{	\n"
+        self.summaryBtn = QPushButton(self.detCertificate)
+        self.summaryBtn.setObjectName(u"summaryBtn")
+        self.summaryBtn.setMinimumSize(QSize(0, 40))
+        self.summaryBtn.setMaximumSize(QSize(16777215, 40))
+        self.summaryBtn.setStyleSheet(u"QPushButton{	\n"
 "	background-color: rgb(255, 255, 255);\n"
 "	border:none;\n"
 "	text-align:left;\n"
@@ -541,9 +541,9 @@ class Ui_MainWindow(object):
 "QPushButton:pressed{	\n"
 "	background-color: rgb(241, 241, 241);\n"
 "}")
-        self.btn_summary.setIcon(icon4)
+        self.summaryBtn.setIcon(icon4)
 
-        self.verticalLayout_7.addWidget(self.btn_summary)
+        self.verticalLayout_7.addWidget(self.summaryBtn)
 
         self.btn_mode = QPushButton(self.detCertificate)
         self.btn_mode.setObjectName(u"btn_mode")
@@ -677,8 +677,8 @@ class Ui_MainWindow(object):
         self.lb_Detail.setText(QCoreApplication.translate("MainWindow", u"\u660e\u7ec6\u529f\u80fd", None))
         self.inputBtn.setText(QCoreApplication.translate("MainWindow", u"01001 \u51ed\u8bc1\u5f55\u5165", None))
         self.queryBtn.setText(QCoreApplication.translate("MainWindow", u"01002 \u51ed\u8bc1\u67e5\u8be2", None))
-        self.btn_post.setText(QCoreApplication.translate("MainWindow", u"01003 \u51ed\u8bc1\u8fc7\u8d26", None))
-        self.btn_summary.setText(QCoreApplication.translate("MainWindow", u"01004 \u51ed\u8bc1\u6c47\u603b", None))
+        self.postBtn.setText(QCoreApplication.translate("MainWindow", u"01003 \u51ed\u8bc1\u8fc7\u8d26", None))
+        self.summaryBtn.setText(QCoreApplication.translate("MainWindow", u"01004 \u51ed\u8bc1\u6c47\u603b", None))
         self.btn_mode.setText(QCoreApplication.translate("MainWindow", u"01005 \u6a21\u5f0f\u51ed\u8bc1", None))
         self.btn_review.setText(QCoreApplication.translate("MainWindow", u"01006 \u53cc\u6572\u5ba1\u6838", None))
         self.btn_introduce.setText(QCoreApplication.translate("MainWindow", u"01007 \u6807\u51c6\u51ed\u8bc1\u5f15\u5165", None))

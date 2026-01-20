@@ -6,11 +6,15 @@ from PySide6.QtGui import Qt, QIcon
 from PySide6.QtCore import QSize
 
 from ui.certificate import Certification
+from ui.summary import VoucherSummary
 
 class MyWindow(QMainWindow, Ui_MainWindow):
-    def __init__(self, username):
+    def __init__(self, username, company):
         super().__init__()
-        self.username = username
+        self.user_info = {
+            "username": username,
+            "company": company
+        }
 
         self.setupUi(self)
         # 设置窗口无边框
@@ -76,6 +80,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
         self.inputBtn.clicked.connect(self.on_inputBtn_clicked)
         self.queryBtn.clicked.connect(self.on_queryBtn_clicked)
+        self.summaryBtn.clicked.connect(self.on_summaryBtn_clicked)
 
     def goto_subfunc_page(self, number):
         """切换子功能窗口页面"""
@@ -92,13 +97,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.inputWindow.raise_()
             self.inputWindow.activateWindow()
 
-        self.inputWindow = Certification(self.username, 1) 
+        self.inputWindow = Certification(self.user_info, 1) 
         self.inputWindow.show()
-
-        # 获取最新凭证号
-        self.inputWindow.numberCombo.addItems(
-            self.inputWindow.voucherManager.update_voucher_no()
-            )
 
     def on_queryBtn_clicked(self):
         """凭证查询功能"""
@@ -106,17 +106,18 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.queryWindow.raise_()
             self.queryWindow.activateWindow()
 
-        self.queryWindow = Certification(self.username, 2) 
+        self.queryWindow = Certification(self.user_info, 2) 
         self.queryWindow.show()
 
-        # 获取全部凭证号
-        self.queryWindow.numberCombo.addItems(
-            self.queryWindow.voucherManager.load_voucher_no()
-            )
-        
-        # 查询已录入的凭证
-        self.queryWindow.numberCombo.setCurrentIndex(-1)
-        self.queryWindow.numberCombo.currentIndexChanged.connect(self.queryWindow.load_voucher)
+    def on_summaryBtn_clicked(self):
+        """凭证汇总"""
+        if hasattr(self, "summaryWindow") and self.summaryWindow.isVisible():
+            self.summaryWindow.raise_()
+            self.summaryWindow.activateWindow()
+
+        self.summaryWindow = VoucherSummary() 
+        self.summaryWindow.show()
+
 
 if __name__ == "__main__":
     app = QApplication([])

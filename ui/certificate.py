@@ -16,13 +16,16 @@ from models.data import Voucher, VoucherDetail
 
 
 class Certification(QWidget):
-    def __init__(self, username, function):
+    def __init__(self, user_info, func):
         super().__init__()
-        self.username = username
-        self.function = function
+        self.username = user_info["username"]
+        self.company = user_info["company"]
+        self.func = func
         self.current_date = QDate.currentDate()
-        current_month = self.current_date.toString("yyyyMM")
-        self.voucherManager = VoucherManager(rf"data\{current_month}.db")
+        current_year = self.current_date.toString("yyyy")
+        self.voucherManager = VoucherManager(
+            rf"data\{self.company}_{current_year}_vouchers.db"
+            )
 
         self.subjectWidget = SubjectWindow()
         self.summaryItems = []
@@ -36,7 +39,7 @@ class Certification(QWidget):
         """获取用户信息"""
         date_str = self.current_date.toString("yyyy年MM期")
 
-        self.companyLb = f"Open公司"
+        self.companyLb = self.company
         self.voucherLb = f"{date_str}"
         
         self.post = ""
@@ -45,17 +48,28 @@ class Certification(QWidget):
         self.cashier = ""
         self.approve = ""
 
-        if self.function == 1:
+        if self.func == 1:
             # 凭证录入
             self.preparer = self.username
-        elif self.function == 3:
+        elif self.func == 2:
+            # 凭证查询
+            self.preparer = self.username
+        elif self.func == 3:
             # 凭证过账
             self.post = ""
 
     def setupUI(self):
         """设置表格UI"""
         # title and size
-        self.setWindowTitle("记账凭证")
+        if self.func == 1:
+            self.setWindowTitle("凭证录入")
+        elif self.func == 2:
+            self.setWindowTitle("凭证查询")
+        elif self.func == 3:
+            self.setWindowTitle("凭证过账")
+        else:
+            self.setWindowTitle("记账凭证")
+
         self.resize(900, 600)
         # 移除最大化按钮标志，只保留最小化和关闭按钮
         self.setWindowFlags(Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
@@ -175,6 +189,17 @@ class Certification(QWidget):
         self.numberCombo.setMaximumSize(100, 30)
         self.numberCombo.setEditable(True)
         numberLayout.addWidget(self.numberCombo)
+        if self.func == 1:
+            # 获取最新凭证号
+            self.numberCombo.addItems(
+                self.voucherManager.update_voucher_no(self.voucher_date)
+                )
+        elif self.func == 2:
+            # 获取全部凭证号
+            self.numberCombo.addItems(
+                self.voucherManager.load_voucher_no(self.voucher_date)
+                )            
+            self.numberCombo.setCurrentIndex(-1)
 
         voucherLayout.addLayout(typeLayout)
         voucherLayout.addLayout(numberLayout)
@@ -338,8 +363,10 @@ class Certification(QWidget):
         # 保存/取消凭证
         self.btnSave.clicked.connect(self.on_btnSave_clicked)
         self.btnCancel.clicked.connect(self.on_btnCancel_clicked)
-        # 查询已录入的凭证
-        # self.numberCombo.currentIndexChanged.connect(self.load_voucher)
+
+        if self.func == 2:
+            # 查询已录入的凭证
+            self.numberCombo.currentIndexChanged.connect(self.load_voucher)
 
     def on_itemChanged(self, item):
         """单元格内容改变时触发"""
@@ -416,7 +443,7 @@ class Certification(QWidget):
         dateDialog.exec()
     
     def show_datetime_picker(self):
-        """选择会计事件"""
+        """选择会计时间"""
         dateDialog = DatePickerDialog(self.created_time, self.datetimeBtnLabel)
         dateDialog.date_selected.connect(self.select_date)
         dateDialog.exec()
@@ -454,16 +481,19 @@ class Certification(QWidget):
     def on_btnSave_clicked(self):
         """保存凭证"""
         # 获取凭证内容
+        number = self.voucher_date.toString("yyyy-MM") + \
+            "-{:0>4d}".format(int(self.numberCombo.currentText()))
+        
         voucher = Voucher(
             voucher_id=self.numberCombo.currentText(),
-            voucher_no=self.numberCombo.currentText(),
+            voucher_no=number,
             voucher_type=self.typeCombo.currentText(),
-            voucher_date=self.dateBtnLabel.text(),
+            voucher_date=self.voucher_date.toString("yyyy-MM-dd"),
             attach_count=0,
             preparer=self.preparer,
             reviewer=None,
             attention=None,
-            created_time=self.created_time
+            created_time=self.created_time.toString("yyyy-MM-dd")
         )
 
         for row in range(self.table.rowCount() - 1):
