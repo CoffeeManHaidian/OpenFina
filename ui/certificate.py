@@ -453,9 +453,12 @@ class Certification(QWidget):
         if label == self.dateBtnLabel:
             self.voucher_date = date
             self.update_date_label(date, self.dateBtnLabel)
+            self.voucherManager.update_voucher_no(date)
+
         elif label == self.datetimeBtnLabel:
             self.created_time = date
             self.update_date_label(date, self.datetimeBtnLabel)
+            self.voucherManager.update_voucher_no(date)
 
     def select_subject(self):
         """选择会计科目——按 F2 打开，会复用已打开窗口并置顶"""

@@ -210,6 +210,7 @@ class VoucherManager:
         month = date.month()
         first_date = QDate(year, month, 1)
         last_date = QDate(year, month+1, 1).addDays(-1)
+        print(first_date, last_date)
 
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -221,10 +222,14 @@ class VoucherManager:
             result = cursor.fetchone()
 
             # 最大编号
-            max_id = result['max_no'] if result and result['max_no'] else 0
+            if result and result['max_no']:
+                max_id = result['max_no'] 
+            else:
+                max_id = date.toString("yyyy-MM") + "-0000"
+
             number = int(max_id.split("-")[2])
 
-            return str(number + 1)
+        return str(number + 1)
             
     def load_voucher_no(self, date) -> List[str]:
         """获取全部凭证号"""

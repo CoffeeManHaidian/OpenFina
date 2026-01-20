@@ -297,6 +297,7 @@ class LoginWidget(QWidget):
     def on_registerBtn_clicked(self):
         """注册"""
         # 获取用户名和密码
+        self.company = self.companyLine.text().strip()
         self.username = self.usernameLine.text().strip()
         self.password = self.passwordLine.text().strip()
 
