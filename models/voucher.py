@@ -1,16 +1,22 @@
-# database.py
-import sqlite3
+import sys
 import os
-# from datetime import date, timedelta
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+import sqlite3
+import numpy as np
+import pandas as pd
+import json
 from typing import List, Optional
 from contextlib import contextmanager
 from PySide6.QtCore import QDate
 
 from models.data import Voucher, VoucherDetail
+from utils.subject import SubjectLookup
 
 class VoucherManager:
     def __init__(self, db_path="finance.db"):
         self.db_path = db_path
+        self.subjectManage = SubjectLookup("source\\subject.json")
         self.init_database()
     
     @contextmanager
@@ -133,13 +139,13 @@ class VoucherManager:
             
             return voucher_id
     
-    def search_voucher(self, voucher_id: int) -> Optional[Voucher]:
+    def search_voucher(self, number: int) -> Optional[Voucher]:
         """获取单个凭证"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
             # 获取主表信息
-            cursor.execute("SELECT * FROM voucher_master WHERE voucher_id = ?", (voucher_id,))
+            cursor.execute("SELECT * FROM voucher_master WHERE voucher_no = ?", (number,))
             master_row = cursor.fetchone()
             
             if not master_row:
@@ -150,7 +156,7 @@ class VoucherManager:
                 SELECT * FROM voucher_details 
                 WHERE voucher_id = ? 
                 ORDER BY line_no
-            """, (voucher_id,))
+            """, (master_row['voucher_id'],))
             detail_rows = cursor.fetchall()
             
             # 构建Voucher对象
@@ -224,6 +230,7 @@ class VoucherManager:
             # 最大编号
             if result and result['max_no']:
                 max_id = result['max_no'] 
+                print(max_id)
             else:
                 max_id = date.toString("yyyy-MM") + "-0000"
 
@@ -249,9 +256,69 @@ class VoucherManager:
                 WHERE voucher_date >= ? AND voucher_date <= ? \
                 ORDER BY voucher_no ASC",
                 (first_date.toString("yyyy-MM-dd"), last_date.toString("yyyy-MM-dd"),)
-                )
+            )
             result = cursor.fetchall()
 
             # 提取凭证号列表
             voucher_nos = [str(row['voucher_no'].split("-")[2]) for row in result]
             return voucher_nos
+    
+    def summary_voucher(self, start_date, end_date):
+        """按会计时期查找凭证"""
+        # 按会计时期查找凭证主表
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM voucher_master \
+                WHERE voucher_date >= ? AND voucher_date <= ?",
+                (start_date.toString("yyyy-MM-dd"), end_date.toString("yyyy-MM-dd"),)
+            )
+            master_row = cursor.fetchall()
+
+        # 凭证主表id
+        voucher_ids = []
+        for voucher in master_row:
+            voucher_ids.append(voucher['voucher_id'])
+
+        return voucher_ids
+    
+    def summary_subject(self, start_date, end_date):
+        """按科目汇总"""
+        voucher_ids = self.summary_voucher(start_date, end_date)
+        # 查询指定凭证的数据
+        query = f'''
+        SELECT account_code, debit_amount, credit_amount 
+        FROM voucher_details
+        WHERE voucher_id IN ({voucher_ids})
+        '''
+
+        with self.get_connection() as conn:
+            df = pd.read_sql_query(query, conn, params=voucher_ids)
+
+            # 创建父级科目代码列
+            df['parent_code'] = df['account_code'].apply(
+                lambda x: x.split('.')[0] if '.' in str(x) else x
+            )
+
+            # 按父级科目代码分组汇总
+            summary = df.groupby('parent_code').agg({
+                'debit_amount': 'sum',
+                'credit_amount': 'sum'
+            }).reset_index()
+
+            # 重命名列并添加更多信息
+            summary = summary.rename(columns={
+                'parent_code': 'account_code',
+                'debit_amount': 'total_debit',
+                'credit_amount': 'total_credit'
+            })
+            
+            # 计算净额
+            summary['net_amount'] = summary['total_debit'] - summary['total_credit']
+            
+            # 添加行数统计
+            summary['record_count'] = summary['account_code'].apply(
+                lambda x: len(df[df['parent_code'] == x])
+            )
+            
+            return summary

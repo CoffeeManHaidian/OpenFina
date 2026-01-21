@@ -208,25 +208,13 @@ class Certification(QWidget):
         ## 设置表头
         self.table = QTableWidget()
         self.table.setRowCount(7)
-        self.table.setColumnCount(6)
+        self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(
-            ["摘要","科目","借方金额","\u2713","贷方金额","\u2713"]
+            ["摘要","科目","借方金额","贷方金额"]
         )
 
         ## 设置默认行高为 40 像素
         self.table.verticalHeader().setDefaultSectionSize(40)
-
-        # 为第5列和第7列（索引4和6）在每一数据行（不含合计行）添加复选框
-        for r in range(self.table.rowCount() - 1):
-            left_cb = QTableWidgetItem()
-            left_cb.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-            left_cb.setCheckState(Qt.Unchecked)
-            self.table.setItem(r, 3, left_cb)
-
-            right_cb = QTableWidgetItem()
-            right_cb.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-            right_cb.setCheckState(Qt.Unchecked)
-            self.table.setItem(r, 5, right_cb)
         
         # 设置科目为不可编辑，并设置提示
         for row in range(self.table.rowCount() - 1):
@@ -245,8 +233,6 @@ class Certification(QWidget):
         self.table.setColumnWidth(2, 100)
         self.table.setColumnWidth(3, 100)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
 
         # 设置表格属性
         # self.table.setAlternatingRowColors(True)
@@ -381,7 +367,7 @@ class Certification(QWidget):
 
         for row in range(self.table.rowCount() - 1):
             debit_value = self.table.item(row, 2)
-            credit_value = self.table.item(row, 4)
+            credit_value = self.table.item(row, 3)
 
             if debit_value and debit_value.text():
                 debit_value = float(debit_value.text().replace(",", ""))
@@ -418,18 +404,7 @@ class Certification(QWidget):
         credit_item = QTableWidgetItem(f"{credit_total:,.2f}")
         credit_item.setBackground(QColor(240, 240, 240))
         credit_item.setFlags(credit_item.flags() & ~Qt.ItemIsEditable)
-        self.table.setItem(last_row, 4, credit_item)
-
-        # 备注合计单元格
-        note_item = QTableWidgetItem("")
-        note_item.setBackground(QColor(240, 240, 240))
-        note_item.setFlags(note_item.flags() & ~Qt.ItemIsEditable)
-        self.table.setItem(last_row, 3, note_item)
-
-        note_item = QTableWidgetItem("")
-        note_item.setBackground(QColor(240, 240, 240))
-        note_item.setFlags(note_item.flags() & ~Qt.ItemIsEditable)
-        self.table.setItem(last_row, 5, note_item)
+        self.table.setItem(last_row, 3, credit_item)
 
     def update_date_label(self, date, label):
         """更新凭证日期标签的显示"""
@@ -453,12 +428,25 @@ class Certification(QWidget):
         if label == self.dateBtnLabel:
             self.voucher_date = date
             self.update_date_label(date, self.dateBtnLabel)
-            self.voucherManager.update_voucher_no(date)
+
+            # 更新凭证编号
+            self.numberCombo.clear()
+            if self.func == 1:
+                self.numberCombo.addItems(
+                    self.voucherManager.update_voucher_no(self.voucher_date)
+                    )
+            elif self.func == 2:
+                self.numberCombo.addItems(
+                    self.voucherManager.load_voucher_no(self.voucher_date)
+                    )
+                self.numberCombo.setCurrentIndex(-1)
+            else:
+                pass
 
         elif label == self.datetimeBtnLabel:
             self.created_time = date
             self.update_date_label(date, self.datetimeBtnLabel)
-            self.voucherManager.update_voucher_no(date)
+            # self.voucherManager.update_voucher_no(date)
 
     def select_subject(self):
         """选择会计科目——按 F2 打开，会复用已打开窗口并置顶"""
@@ -502,7 +490,7 @@ class Certification(QWidget):
         for row in range(self.table.rowCount() - 1):
             debit_value, credit_value = "", ""
             debit_value = self.table.item(row, 2)
-            credit_value = self.table.item(row, 4)
+            credit_value = self.table.item(row, 3)
             if debit_value and debit_value.text():
                 debit_value = float(debit_value.text().replace(",", ""))
             else:
@@ -541,9 +529,9 @@ class Certification(QWidget):
 
     def load_voucher(self):
         """加载以录入的凭证"""
-        index = self.numberCombo.currentText()
-        if not index == -1:
-            voucher = self.voucherManager.search_voucher(index)
+        number = self.voucher_date.toString("yyyy-MM-") + self.numberCombo.currentText()
+        if not self.numberCombo.currentIndex() == -1:
+            voucher = self.voucherManager.search_voucher(number)
         
             self.table.clearContents()
             # self.setupUI()
@@ -551,18 +539,6 @@ class Certification(QWidget):
             self.dateBtnLabel.setText(voucher.voucher_date)
             # 制单人
             self.preparerLb.setText(voucher.preparer)
-            
-            # 重新创建复选框（第3列和第5列）
-            for r in range(self.table.rowCount() - 1):  # 不含合计行
-                left_cb = QTableWidgetItem()
-                left_cb.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-                left_cb.setCheckState(Qt.Unchecked)
-                self.table.setItem(r, 3, left_cb)
-
-                right_cb = QTableWidgetItem()
-                right_cb.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-                right_cb.setCheckState(Qt.Unchecked)
-                self.table.setItem(r, 5, right_cb)
             
             # 设置凭证详情
             for row in range(len(voucher.details)):
@@ -577,7 +553,7 @@ class Certification(QWidget):
                 # 借方金额
                 self.table.setItem(row, 2, QTableWidgetItem(str(detail.debit_amount)))
                 # 贷方金额
-                self.table.setItem(row, 4, QTableWidgetItem(str(detail.credit_amount)))
+                self.table.setItem(row, 3, QTableWidgetItem(str(detail.credit_amount)))
             
             # 为剩余的数据行设置默认科目单元格（只读）
             for row in range(len(voucher.details), self.table.rowCount() - 1):

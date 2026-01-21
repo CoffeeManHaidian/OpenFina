@@ -115,7 +115,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.summaryWindow.raise_()
             self.summaryWindow.activateWindow()
 
-        self.summaryWindow = VoucherSummary() 
+        self.summaryWindow = VoucherSummary(self.user_info) 
         self.summaryWindow.show()
 
 
