@@ -16,7 +16,6 @@ from utils.subject import SubjectLookup
 class VoucherManager:
     def __init__(self, db_path="finance.db"):
         self.db_path = db_path
-        self.subjectManage = SubjectLookup("source\\subject.json")
         self.init_database()
     
     @contextmanager
@@ -278,7 +277,7 @@ class VoucherManager:
         # 凭证主表id
         voucher_ids = []
         for voucher in master_row:
-            voucher_ids.append(voucher['voucher_id'])
+            voucher_ids.append(int(voucher['voucher_id']))
 
         return voucher_ids
     
@@ -286,39 +285,23 @@ class VoucherManager:
         """按科目汇总"""
         voucher_ids = self.summary_voucher(start_date, end_date)
         # 查询指定凭证的数据
-        query = f'''
-        SELECT account_code, debit_amount, credit_amount 
-        FROM voucher_details
-        WHERE voucher_id IN ({voucher_ids})
-        '''
-
         with self.get_connection() as conn:
-            df = pd.read_sql_query(query, conn, params=voucher_ids)
+            cursor = conn.cursor()
 
-            # 创建父级科目代码列
-            df['parent_code'] = df['account_code'].apply(
-                lambda x: x.split('.')[0] if '.' in str(x) else x
-            )
+            placeholders = ','.join(['?' for _ in voucher_ids])
+            result = cursor.execute(f'''
+                SELECT 
+                    CASE 
+                        WHEN INSTR(account_code, '.') > 0 
+                        THEN SUBSTR(account_code, 1, INSTR(account_code, '.') - 1)
+                        ELSE account_code
+                    END AS parent_code,
+                    SUM(debit_amount) as total_debit,
+                    SUM(credit_amount) as total_credit
+                FROM voucher_details 
+                WHERE voucher_id IN ({placeholders})
+                GROUP BY parent_code
+            ''',
+            voucher_ids).fetchall()
 
-            # 按父级科目代码分组汇总
-            summary = df.groupby('parent_code').agg({
-                'debit_amount': 'sum',
-                'credit_amount': 'sum'
-            }).reset_index()
-
-            # 重命名列并添加更多信息
-            summary = summary.rename(columns={
-                'parent_code': 'account_code',
-                'debit_amount': 'total_debit',
-                'credit_amount': 'total_credit'
-            })
-            
-            # 计算净额
-            summary['net_amount'] = summary['total_debit'] - summary['total_credit']
-            
-            # 添加行数统计
-            summary['record_count'] = summary['account_code'].apply(
-                lambda x: len(df[df['parent_code'] == x])
-            )
-            
-            return summary
+        return result

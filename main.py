@@ -117,6 +117,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
         self.summaryWindow = VoucherSummary(self.user_info) 
         self.summaryWindow.show()
+        self.summaryWindow.filterWidget.show()
 
 
 if __name__ == "__main__":

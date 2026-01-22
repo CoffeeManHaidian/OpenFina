@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QApplication, QHBoxLayout, QHeaderView, QPushButt
 from PySide6.QtCore import Qt, QDate, QSize
 from PySide6.QtGui import QFont, QColor, QShortcut, QKeySequence
 
-from ui.calendar import DatePickerDialog
+from ui.cal import DatePickerDialog
 from ui.clickableTabel import ClickableLabel
 from models.voucher import VoucherManager
 from ui.subject import SubjectWindow

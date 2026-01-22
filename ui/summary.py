@@ -3,17 +3,22 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from PySide6.QtWidgets import (QApplication, QWidget, QLabel, QTableWidget, QPushButton,
-    QComboBox, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTableWidgetItem)
+    QComboBox, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTableWidgetItem,
+    QDialog)
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont, QColor
 
 from models.voucher import VoucherManager
-from models.data import Voucher, VoucherDetail
+from utils.subject import SubjectLookup
+from ui.filter import FilterWidget
 
 
 class VoucherSummary(QWidget):
     def __init__(self, user_info):
         super().__init__()
+        
+        self.filterWidget = FilterWidget()
+        self.subjectManage = SubjectLookup("source\\subject.json")
         self.user_info = user_info
         self.setupUi()
         self.init_slot()
@@ -108,22 +113,50 @@ class VoucherSummary(QWidget):
         # 筛选凭证科目代码
         result = self.voucherManage.summary_subject(start_date, end_date)
         for i in range(len(result)):
+            # 新增一行
             self.table.setRowCount(i+1)
-            subjectItem = QTableWidgetItem(f"{result['account_code']}")
+            info = result[i]
+
+            # 更新科目代码
+            code = info['parent_code']
+            name = self.subjectManage.get_name(info['parent_code'])
+            subjectItem = QTableWidgetItem(f"{code} {name}")
             subjectItem.setBackground(QColor(240, 240, 240))
             subjectItem.setFlags(subjectItem.flags() & ~Qt.ItemIsEditable)  # 设置为不可编辑
             self.table.setItem(i, 0, subjectItem)
 
-        # # 计算总额
-        # debit_amount, credit_amount = self.voucherManage.summary_amount(start_date, end_date)
-        # ## 展示借方总额
-        # self.table.setRowCount(i+2)
-        # sumdebitItem = QTableWidgetItem(f"{debit_amount}")
-        # sumdebitItem.setBackground(QColor(240, 240, 240))
-        # sumdebitItem.setFlags(sumdebitItem.flags() & ~Qt.ItemIsEditable)  # 设置为不可编辑
-        # self.table.setItem(i+1, 1, sumdebitItem)
-        # ## 展示贷方总额
-        # sumcreditItem = QTableWidgetItem(f"{credit_amount}")
-        # sumcreditItem.setBackground(QColor(240, 240, 240))
-        # sumcreditItem.setFlags(sumcreditItem.flags() & ~Qt.ItemIsEditable)  # 设置为不可编辑
-        # self.table.setItem(i+1, 2, sumcreditItem)
+            # 更新借方金额合计
+            debitItem = QTableWidgetItem(f"{info['total_debit']}")
+            debitItem.setBackground(QColor(240, 240, 240))
+            debitItem.setFlags(debitItem.flags() & ~Qt.ItemIsEditable)  # 设置为不可编辑
+            self.table.setItem(i, 1, debitItem)
+
+            # 更新贷方金额
+            creditItem = QTableWidgetItem(f"{info['total_credit']}")
+            creditItem.setBackground(QColor(240, 240, 240))
+            creditItem.setFlags(creditItem.flags() & ~Qt.ItemIsEditable)  # 设置为不可编辑
+            self.table.setItem(i, 2, creditItem)
+
+            # 更新科目余额
+            balanceItem = QTableWidgetItem(f"{info['total_debit'] - info['total_credit']}")
+            balanceItem.setBackground(QColor(240, 240, 240))
+            balanceItem.setFlags(balanceItem.flags() & ~Qt.ItemIsEditable)  # 设置为不可编辑
+            self.table.setItem(i, 3, balanceItem)
+
+        # 计算总额
+        debit_amount, credit_amount = 0.0, 0.0
+        for row in range(self.table.rowCount()):
+            debit_amount += float(self.table.item(row, 1).text())
+            credit_amount += float(self.table.item(row, 2).text())
+
+        ## 展示借方总额
+        self.table.setRowCount(i+2)
+        sumdebitItem = QTableWidgetItem(f"{debit_amount}")
+        sumdebitItem.setBackground(QColor(240, 240, 240))
+        sumdebitItem.setFlags(sumdebitItem.flags() & ~Qt.ItemIsEditable)  # 设置为不可编辑
+        self.table.setItem(i+1, 1, sumdebitItem)
+        ## 展示贷方总额
+        sumcreditItem = QTableWidgetItem(f"{credit_amount}")
+        sumcreditItem.setBackground(QColor(240, 240, 240))
+        sumcreditItem.setFlags(sumcreditItem.flags() & ~Qt.ItemIsEditable)  # 设置为不可编辑
+        self.table.setItem(i+1, 2, sumcreditItem)
