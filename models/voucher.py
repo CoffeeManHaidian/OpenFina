@@ -263,7 +263,7 @@ class VoucherManager:
             return voucher_nos
     
     def summary_voucher(self, start_date, end_date):
-        """按会计时期查找凭证"""
+        """按会计时期查找凭证，返回ID"""
         # 按会计时期查找凭证主表
         with self.get_connection() as conn:
             cursor = conn.cursor()
