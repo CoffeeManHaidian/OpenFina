@@ -4,8 +4,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import Qt, QIcon
 from PySide6.QtCore import QSize
 
-# from ui.Ui_mainwindow import Ui_MainWindow
-from ui.mainwindow import Ui_MainWindow
+from ui.Ui_mainwindow import Ui_MainWindow
+# from ui.mainwindow import Ui_MainWindow
 from ui.certificate import Certification
 from ui.summary import VoucherSummary
 
