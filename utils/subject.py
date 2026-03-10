@@ -1,7 +1,23 @@
 import json
+import os
+import sys
+
+def get_subject_json_path():
+    """获取会计科目JSON文件路径"""
+    if getattr(sys, 'frozen', False):
+        # 打包后的exe环境
+        app_dir = os.path.dirname(sys.executable)
+    else:
+        # 开发环境
+        app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(app_dir, 'source', 'subject.json')
+
 
 class SubjectLookup:
-    def __init__(self, json_path):
+    def __init__(self, json_path=None):
+        # 如果没有提供路径，使用默认路径
+        if json_path is None:
+            json_path = get_subject_json_path()
         with open(json_path, 'r', encoding='utf-8') as f:
             self.data = json.load(f)
         self.cache = {}

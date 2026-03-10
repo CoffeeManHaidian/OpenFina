@@ -12,6 +12,7 @@ from PySide6.QtCore import QDate
 
 from models.data import Voucher, VoucherDetail
 from utils.subject import SubjectLookup
+from utils.path_helper import get_data_dir
 
 class VoucherManager:
     def __init__(self, db_path="finance.db"):

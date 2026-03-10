@@ -5,3 +5,7 @@ icons/icon.ai
 *.db
 data
 *__pycache__
+_internal
+build
+dist
+*.spec

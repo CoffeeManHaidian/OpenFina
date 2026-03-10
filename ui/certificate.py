@@ -13,6 +13,7 @@ from ui.clickableTabel import ClickableLabel
 from models.voucher import VoucherManager
 from ui.subject import SubjectWindow
 from models.data import Voucher, VoucherDetail
+from utils.path_helper import get_data_dir
 
 
 class Certification(QWidget):
@@ -23,9 +24,9 @@ class Certification(QWidget):
         self.func = func
         self.current_date = QDate.currentDate()
         current_year = self.current_date.toString("yyyy")
-        self.voucherManager = VoucherManager(
-            rf"data\{self.company}_{current_year}_vouchers.db"
-            )
+        db_filename = f"{self.company}_{current_year}_vouchers.db"
+        db_path = os.path.join(get_data_dir(), db_filename)
+        self.voucherManager = VoucherManager(db_path)
 
         self.subjectWidget = SubjectWindow()
         self.summaryItems = []

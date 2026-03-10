@@ -10,6 +10,7 @@ from PySide6.QtGui import QColor, QIcon, QPixmap
 import json
 
 from utils.password import PasswdManager
+from utils.path_helper import get_db_path, get_settings_path, get_icon_path
 from main import MyWindow
 # from ui.auto_login import AutoWidget
 
@@ -17,7 +18,7 @@ from main import MyWindow
 class LoginWidget(QWidget):
     def __init__(self):
         super().__init__()
-        self.passwdManage = PasswdManager(rf"data\users.db")
+        self.passwdManage = PasswdManager(get_db_path("users.db"))
         self.setupUi()
         self.setStyle()
         self.init_slot()
@@ -393,7 +394,7 @@ class LoginWidget(QWidget):
             settings = {
                 "remember_state": False
             }        
-        with open(rf"data\settings.json", 'w', encoding='utf-8') as f:
+        with open(get_settings_path(), 'w', encoding='utf-8') as f:
             json.dump(settings, f)
 
 
@@ -401,7 +402,7 @@ class AutoWidget(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.passwdManage = PasswdManager(rf"data\users.db")
+        self.passwdManage = PasswdManager(get_db_path("users.db"))
         self.user_info()
         self.setupUi()
         self.setStyle()
@@ -430,7 +431,7 @@ class AutoWidget(QWidget):
         middleLayout.setContentsMargins(0,20,0,50)
         self.userLb = QLabel()
         # self.userLb.setObjectName("userLb")
-        self.userLb.setPixmap(QPixmap(rf"icons\user.png"))
+        self.userLb.setPixmap(QPixmap(get_icon_path("user.png")))
         self.usernameLb = QLabel(self.username)
         self.usernameLb.setObjectName("usernameLb")
         self.companyLb = QLabel(self.company)
@@ -517,7 +518,7 @@ class AutoWidget(QWidget):
 
     def user_info(self):
         """获取用户信息"""
-        with open(rf"data\settings.json", 'r', encoding='utf-8') as f:
+        with open(get_settings_path(), 'r', encoding='utf-8') as f:
             settings = json.load(f)
         
         self.username = settings['username']
@@ -536,8 +537,9 @@ class AutoWidget(QWidget):
 
 def load_settings():        
     """加载软件配置"""
-    if os.path.exists(rf"data\settings.json"):
-        with open(rf"data\settings.json", 'r', encoding='utf-8') as f:
+    settings_path = get_settings_path()
+    if os.path.exists(settings_path):
+        with open(settings_path, 'r', encoding='utf-8') as f:
             settings = json.load(f)
     
         if settings['remember_state']:
