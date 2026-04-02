@@ -1,16 +1,10 @@
 import json
-import os
-import sys
+
+from utils.path_helper import get_subject_json_path as get_subject_json_file_path
 
 def get_subject_json_path():
-    """获取会计科目JSON文件路径"""
-    if getattr(sys, 'frozen', False):
-        # 打包后的exe环境
-        app_dir = os.path.dirname(sys.executable)
-    else:
-        # 开发环境
-        app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(app_dir, 'source', 'subject.json')
+    """兼容旧调用，转发到统一路径工具。"""
+    return get_subject_json_file_path()
 
 
 class SubjectLookup:

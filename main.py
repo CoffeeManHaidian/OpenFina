@@ -4,10 +4,16 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import Qt, QIcon
 from PySide6.QtCore import QSize
 
+from PySide6.QtWidgets import QMessageBox
+
 from ui.Ui_mainwindow import Ui_MainWindow
 # from ui.mainwindow import Ui_MainWindow
 from ui.certificate import Certification
 from ui.summary import VoucherSummary
+from utils.logger import get_logger, log_system_info
+
+# 初始化日志记录器
+logger = get_logger()
 
 class MyWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, username, company):
@@ -93,35 +99,52 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
     def on_inputBtn_clicked(self):
         """打开凭证录入窗口"""
-        # 如果窗口已打开，则置顶并激活
         if hasattr(self, "inputWindow") and self.inputWindow.isVisible():
             self.inputWindow.raise_()
             self.inputWindow.activateWindow()
+            return
 
-        self.inputWindow = Certification(self.user_info, 1) 
-        self.inputWindow.show()
+        try:
+            self.inputWindow = Certification(self.user_info, 1)
+            self.inputWindow.show()
+        except Exception as exc:
+            logger.exception("打开凭证录入窗口失败")
+            QMessageBox.critical(self, "错误", f"打开凭证录入窗口失败:\n{exc}")
 
     def on_queryBtn_clicked(self):
         """凭证查询功能"""
         if hasattr(self, "queryWindow") and self.queryWindow.isVisible():
             self.queryWindow.raise_()
             self.queryWindow.activateWindow()
+            return
 
-        self.queryWindow = Certification(self.user_info, 2) 
-        self.queryWindow.show()
+        try:
+            self.queryWindow = Certification(self.user_info, 2)
+            self.queryWindow.show()
+        except Exception as exc:
+            logger.exception("打开凭证查询窗口失败")
+            QMessageBox.critical(self, "错误", f"打开凭证查询窗口失败:\n{exc}")
 
     def on_summaryBtn_clicked(self):
         """凭证汇总"""
         if hasattr(self, "summaryWindow") and self.summaryWindow.isVisible():
             self.summaryWindow.raise_()
             self.summaryWindow.activateWindow()
+            return
 
-        self.summaryWindow = VoucherSummary(self.user_info) 
-        self.summaryWindow.show()
-        self.summaryWindow.filterWidget.show()
+        try:
+            self.summaryWindow = VoucherSummary(self.user_info)
+            self.summaryWindow.show()
+            self.summaryWindow.filterWidget.show()
+        except Exception as exc:
+            logger.exception("打开凭证汇总窗口失败")
+            QMessageBox.critical(self, "错误", f"打开凭证汇总窗口失败:\n{exc}")
 
 
 if __name__ == "__main__":
+    # 记录系统启动信息
+    log_system_info(logger)
+    
     app = QApplication([])
     mainwindow = MyWindow()
 

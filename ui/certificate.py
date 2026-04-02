@@ -14,6 +14,9 @@ from models.voucher import VoucherManager
 from ui.subject import SubjectWindow
 from models.data import Voucher, VoucherDetail
 from utils.path_helper import get_data_dir
+from utils.logger import get_logger, log_event
+
+logger = get_logger()
 
 
 class Certification(QWidget):
@@ -27,6 +30,7 @@ class Certification(QWidget):
         db_filename = f"{self.company}_{current_year}_vouchers.db"
         db_path = os.path.join(get_data_dir(), db_filename)
         self.voucherManager = VoucherManager(db_path)
+        log_event(logger, "初始化凭证窗口", username=self.username, company=self.company, func=self.func, db_path=db_path)
 
         self.subjectWidget = SubjectWindow()
         self.summaryItems = []
@@ -192,15 +196,15 @@ class Certification(QWidget):
         numberLayout.addWidget(self.numberCombo)
         if self.func == 1:
             # 获取最新凭证号
-            self.numberCombo.addItems(
-                self.voucherManager.update_voucher_no(self.voucher_date)
-                )
+            next_number = self.voucherManager.update_voucher_no(self.voucher_date)
+            self.numberCombo.addItems(next_number)
+            log_event(logger, "初始化凭证号", func=self.func, numbers=next_number)
         elif self.func == 2:
             # 获取全部凭证号
-            self.numberCombo.addItems(
-                self.voucherManager.load_voucher_no(self.voucher_date)
-                )            
+            numbers = self.voucherManager.load_voucher_no(self.voucher_date)
+            self.numberCombo.addItems(numbers)            
             self.numberCombo.setCurrentIndex(-1)
+            log_event(logger, "加载凭证号列表", func=self.func, count=len(numbers))
 
         voucherLayout.addLayout(typeLayout)
         voucherLayout.addLayout(numberLayout)
@@ -414,12 +418,14 @@ class Certification(QWidget):
 
     def show_date_picker(self):
         """选择凭证日期"""
+        log_event(logger, "打开业务日期选择器", current_date=self.voucher_date.toString("yyyy-MM-dd"))
         dateDialog = DatePickerDialog(self.created_time, self.dateBtnLabel)
         dateDialog.date_selected.connect(self.select_date)
         dateDialog.exec()
     
     def show_datetime_picker(self):
         """选择会计时间"""
+        log_event(logger, "打开会计时间选择器", current_date=self.created_time.toString("yyyy-MM-dd"))
         dateDialog = DatePickerDialog(self.created_time, self.datetimeBtnLabel)
         dateDialog.date_selected.connect(self.select_date)
         dateDialog.exec()
@@ -433,20 +439,21 @@ class Certification(QWidget):
             # 更新凭证编号
             self.numberCombo.clear()
             if self.func == 1:
-                self.numberCombo.addItems(
-                    self.voucherManager.update_voucher_no(self.voucher_date)
-                    )
+                next_number = self.voucherManager.update_voucher_no(self.voucher_date)
+                self.numberCombo.addItems(next_number)
+                log_event(logger, "更新凭证号", func=self.func, voucher_date=self.voucher_date.toString("yyyy-MM-dd"), numbers=next_number)
             elif self.func == 2:
-                self.numberCombo.addItems(
-                    self.voucherManager.load_voucher_no(self.voucher_date)
-                    )
+                numbers = self.voucherManager.load_voucher_no(self.voucher_date)
+                self.numberCombo.addItems(numbers)
                 self.numberCombo.setCurrentIndex(-1)
+                log_event(logger, "更新查询凭证号列表", func=self.func, voucher_date=self.voucher_date.toString("yyyy-MM-dd"), count=len(numbers))
             else:
                 pass
 
         elif label == self.datetimeBtnLabel:
             self.created_time = date
             self.update_date_label(date, self.datetimeBtnLabel)
+            log_event(logger, "更新会计时间", created_time=self.created_time.toString("yyyy-MM-dd"))
             # self.voucherManager.update_voucher_no(date)
 
     def select_subject(self):
@@ -460,11 +467,13 @@ class Certification(QWidget):
                 return
 
             # 显示窗口
+            log_event(logger, "打开科目选择窗口", row=self.table.currentRow(), column=self.table.currentColumn())
             self.subjectWidget.show()
 
     def get_subject(self, code, name):
         """获取会计科目类和会计科目"""
         self.subjectStr = f"{code} {name}"
+        log_event(logger, "写入科目到凭证明细", row=self.table.currentRow(), code=code, name=name)
 
         # 显示会计科目
         currentRow = self.table.currentRow()
@@ -487,6 +496,7 @@ class Certification(QWidget):
             attention=None,
             created_time=self.created_time.toString("yyyy-MM-dd")
         )
+        log_event(logger, "开始保存凭证", voucher_no=number, voucher_type=voucher.voucher_type, username=self.username, company=self.company)
 
         for row in range(self.table.rowCount() - 1):
             debit_value, credit_value = "", ""
@@ -502,7 +512,6 @@ class Certification(QWidget):
                 credit_value = 0.0
 
             if debit_value or credit_value:
-                print(self.table.item(row, 1).text().split(" "))
                 detail = VoucherDetail(
                     line_no=row,
                     account_code=self.table.item(row, 1).text().split(" ")[0],
@@ -515,24 +524,39 @@ class Certification(QWidget):
             else:
                 pass
 
+        log_event(
+            logger,
+            "凭证保存数据准备完成",
+            voucher_no=voucher.voucher_no,
+            detail_count=len(voucher.details),
+            debit_total=f"{self.debit_total:.2f}",
+            credit_total=f"{self.credit_total:.2f}"
+        )
+
         try:
             index = self.voucherManager.save_voucher(voucher)
+            log_event(logger, "凭证保存成功", voucher_id=index, voucher_no=voucher.voucher_no, detail_count=len(voucher.details))
             QMessageBox.information(self, "成功", f"凭证{index}保存成功！")
         except Exception as e:
-            print(f"凭证保存失败{str(e)}")
+            logger.exception("凭证保存失败")
             QMessageBox.critical(self, "错误", f"凭证保存失败{str(e)}")
 
         # 关闭窗口
         self.close()
 
     def on_btnCancel_clicked(self):
+        log_event(logger, "取消凭证编辑", username=self.username, company=self.company, func=self.func)
         self.close()
 
     def load_voucher(self):
         """加载以录入的凭证"""
         number = self.voucher_date.toString("yyyy-MM-") + self.numberCombo.currentText()
         if not self.numberCombo.currentIndex() == -1:
+            log_event(logger, "加载凭证", voucher_no=number, username=self.username, company=self.company)
             voucher = self.voucherManager.search_voucher(number)
+            if voucher is None:
+                log_event(logger, "凭证不存在", level=30, voucher_no=number)
+                return
         
             self.table.clearContents()
             # self.setupUI()
@@ -566,6 +590,7 @@ class Certification(QWidget):
             
             # 计算并更新合计
             self.calculate_totals()
+            log_event(logger, "凭证加载完成", voucher_no=number, detail_count=len(voucher.details))
 
 
 if __name__ == "__main__":

@@ -13,10 +13,14 @@ from PySide6.QtCore import QDate
 from models.data import Voucher, VoucherDetail
 from utils.subject import SubjectLookup
 from utils.path_helper import get_data_dir
+from utils.logger import get_logger, log_event
+
+logger = get_logger()
 
 class VoucherManager:
     def __init__(self, db_path="finance.db"):
         self.db_path = db_path
+        log_event(logger, "初始化 VoucherManager", db_path=self.db_path)
         self.init_database()
     
     @contextmanager
@@ -29,12 +33,14 @@ class VoucherManager:
             conn.commit()
         except Exception:
             conn.rollback()
+            logger.exception("数据库事务执行失败")
             raise
         finally:
             conn.close()
     
     def init_database(self):
         with self.get_connection() as conn:
+            log_event(logger, "初始化凭证数据库结构", db_path=self.db_path)
             # 创建凭证主表
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS voucher_master (
@@ -75,6 +81,7 @@ class VoucherManager:
         """保存凭证（包含事务）"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            log_event(logger, "开始写入凭证", db_path=self.db_path, voucher_no=voucher.voucher_no, detail_count=len(voucher.details))
             
             cursor.execute(
                 "SELECT voucher_id FROM voucher_master WHERE voucher_no = ?",
@@ -84,6 +91,7 @@ class VoucherManager:
 
             if result is None:
                 # 新增
+                log_event(logger, "写入新凭证主表", voucher_no=voucher.voucher_no)
                 cursor.execute("""
                     INSERT INTO voucher_master 
                     (voucher_no, voucher_type, voucher_date, attach_count, preparer, reviewer, attention)
@@ -101,6 +109,7 @@ class VoucherManager:
             else:
                 # 更新
                 voucher_id = voucher.voucher_id
+                log_event(logger, "更新已有凭证主表", voucher_no=voucher.voucher_no, voucher_id=voucher_id)
                 cursor.execute("""
                     UPDATE voucher_master SET
                     voucher_no = ?, voucher_type = ?, voucher_date = ?, attach_count = ?,
@@ -136,6 +145,7 @@ class VoucherManager:
                     detail.summary,
                     detail.auxiliary
                 ))
+            log_event(logger, "凭证写入完成", voucher_id=voucher_id, voucher_no=voucher.voucher_no, detail_count=len(voucher.details))
             
             return voucher_id
     
@@ -143,12 +153,14 @@ class VoucherManager:
         """获取单个凭证"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            log_event(logger, "查询单张凭证", db_path=self.db_path, voucher_no=number)
             
             # 获取主表信息
             cursor.execute("SELECT * FROM voucher_master WHERE voucher_no = ?", (number,))
             master_row = cursor.fetchone()
             
             if not master_row:
+                log_event(logger, "凭证查询结果为空", level=30, db_path=self.db_path, voucher_no=number)
                 return None
             
             # 获取明细
@@ -183,6 +195,7 @@ class VoucherManager:
                     summary=row['summary'],
                     auxiliary=row['auxiliary']
                 ))
+            log_event(logger, "凭证查询成功", voucher_no=number, detail_count=len(voucher.details))
             
             return voucher        
     
@@ -190,6 +203,7 @@ class VoucherManager:
         """查询凭证列表"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            log_event(logger, "查询凭证列表", db_path=self.db_path, start_date=start_date, end_date=end_date, voucher_no=voucher_no)
             
             query = "SELECT * FROM voucher_master WHERE 1=1"
             params = []
@@ -207,7 +221,9 @@ class VoucherManager:
             query += " ORDER BY voucher_date, voucher_no"
             cursor.execute(query, params)
             
-            return cursor.fetchall()
+            rows = cursor.fetchall()
+            log_event(logger, "凭证列表查询完成", result_count=len(rows))
+            return rows
         
     def update_voucher_no(self, date) -> int:
         """获取下一个可用凭证号"""
@@ -216,8 +232,6 @@ class VoucherManager:
         month = date.month()
         first_date = QDate(year, month, 1)
         last_date = QDate(year, month+1, 1).addDays(-1)
-        print(first_date, last_date)
-
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -230,13 +244,13 @@ class VoucherManager:
             # 最大编号
             if result and result['max_no']:
                 max_id = result['max_no'] 
-                print(max_id)
             else:
                 max_id = date.toString("yyyy-MM") + "-0000"
 
             number = int(max_id.split("-")[2])
-
-        return str(number + 1)
+        next_number = str(number + 1)
+        log_event(logger, "生成下一个凭证号", db_path=self.db_path, period=date.toString("yyyy-MM"), next_number=next_number)
+        return next_number
             
     def load_voucher_no(self, date) -> List[str]:
         """获取全部凭证号"""
@@ -261,6 +275,7 @@ class VoucherManager:
 
             # 提取凭证号列表
             voucher_nos = [str(row['voucher_no'].split("-")[2]) for row in result]
+            log_event(logger, "加载凭证号列表", db_path=self.db_path, period=date.toString("yyyy-MM"), count=len(voucher_nos))
             return voucher_nos
     
     def summary_voucher(self, start_date, end_date):
@@ -279,12 +294,16 @@ class VoucherManager:
         voucher_ids = []
         for voucher in master_row:
             voucher_ids.append(int(voucher['voucher_id']))
+        log_event(logger, "汇总凭证主表查询完成", db_path=self.db_path, start_date=start_date.toString("yyyy-MM-dd"), end_date=end_date.toString("yyyy-MM-dd"), count=len(voucher_ids))
 
         return voucher_ids
     
     def summary_subject(self, start_date, end_date):
         """按科目汇总"""
         voucher_ids = self.summary_voucher(start_date, end_date)
+        if not voucher_ids:
+            log_event(logger, "科目汇总无可用凭证", level=30, db_path=self.db_path, start_date=start_date.toString("yyyy-MM-dd"), end_date=end_date.toString("yyyy-MM-dd"))
+            return []
         # 查询指定凭证的数据
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -305,4 +324,5 @@ class VoucherManager:
             ''',
             voucher_ids).fetchall()
 
+        log_event(logger, "科目汇总完成", db_path=self.db_path, start_date=start_date.toString("yyyy-MM-dd"), end_date=end_date.toString("yyyy-MM-dd"), result_count=len(result))
         return result

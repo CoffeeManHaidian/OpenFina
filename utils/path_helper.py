@@ -1,49 +1,41 @@
-"""
-路径处理工具模块 - 支持开发环境和打包后的exe环境
-"""
-import sys
+"""路径处理工具模块 - 统一开发环境和 PyInstaller 打包环境的路径行为。"""
 import os
+import sys
+
+from utils.logger import get_logger, log_db_path
+
+# 获取日志记录器
+logger = get_logger()
 
 
 def get_app_dir():
-    """
-    获取应用程序根目录
-    
-    在开发环境: 返回项目根目录
-    在打包环境: 返回exe所在目录
-    """
-    if getattr(sys, 'frozen', False):
-        # 打包后的exe环境 - sys.executable是exe路径
+    """获取可写应用目录。开发环境为项目根目录，打包环境为 exe 所在目录。"""
+    if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
-    else:
-        # 开发环境 - 返回项目根目录（当前文件的上两级）
-        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def get_bundle_dir():
+    """获取打包资源所在目录。PyInstaller 打包后优先使用 _MEIPASS。"""
+    if getattr(sys, "frozen", False):
+        return getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    return get_app_dir()
+
+
+def ensure_dir(path):
+    """确保目录存在。"""
+    os.makedirs(path, exist_ok=True)
+    return path
 
 
 def get_data_dir():
-    """
-    获取数据目录路径
-    
-    返回: data/ 目录的绝对路径
-    """
-    app_dir = get_app_dir()
-    data_dir = os.path.join(app_dir, 'data')
-    
-    # 确保data目录存在
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-    
-    return data_dir
+    """获取 data 目录路径。"""
+    return ensure_dir(os.path.join(get_app_dir(), "data"))
 
 
 def get_resource_dir():
-    """
-    获取资源目录路径
-    
-    返回: 资源目录的绝对路径
-    """
-    app_dir = get_app_dir()
-    return app_dir
+    """获取资源目录路径。"""
+    return get_bundle_dir()
 
 
 def get_db_path(db_name):
@@ -56,8 +48,12 @@ def get_db_path(db_name):
     Returns:
         数据库文件的绝对路径
     """
-    data_dir = get_data_dir()
-    return os.path.join(data_dir, db_name)
+    db_path = os.path.join(get_data_dir(), db_name)
+    
+    # 记录数据库路径信息
+    log_db_path(logger, db_name, db_path)
+    
+    return db_path
 
 
 def get_settings_path():
@@ -67,8 +63,7 @@ def get_settings_path():
     Returns:
         settings.json 的绝对路径
     """
-    data_dir = get_data_dir()
-    return os.path.join(data_dir, 'settings.json')
+    return os.path.join(get_data_dir(), "settings.json")
 
 
 def get_subject_json_path():
@@ -78,8 +73,7 @@ def get_subject_json_path():
     Returns:
         source/subject.json 的绝对路径
     """
-    app_dir = get_app_dir()
-    return os.path.join(app_dir, 'source', 'subject.json')
+    return os.path.join(get_bundle_dir(), "source", "subject.json")
 
 
 def get_icon_path(icon_name):
@@ -92,5 +86,4 @@ def get_icon_path(icon_name):
     Returns:
         图标文件的绝对路径
     """
-    app_dir = get_app_dir()
-    return os.path.join(app_dir, 'icons', icon_name)
+    return os.path.join(get_bundle_dir(), "icons", icon_name)

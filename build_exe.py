@@ -28,18 +28,25 @@ def clean_build():
 
 def get_conda_python():
     """获取 Conda Qt 环境的 Python 路径"""
-    # 尝试找到 Conda Qt 环境的 Python
-    conda_base = os.path.expanduser("~/anaconda3")  # 或 miniconda3
-    if not os.path.exists(conda_base):
-        conda_base = os.path.expanduser("~/miniconda3")
-    
-    # Windows 上的路径
-    if sys.platform == 'win32':
-        python_path = os.path.join(conda_base, "envs", "Qt", "python.exe")
+    candidates = []
+    user_profile = os.environ.get("USERPROFILE", "")
+
+    if sys.platform == "win32":
+        if user_profile:
+            candidates.extend([
+                os.path.join(user_profile, ".conda", "envs", "Qt", "python.exe"),
+                os.path.join(user_profile, "anaconda3", "envs", "Qt", "python.exe"),
+                os.path.join(user_profile, "miniconda3", "envs", "Qt", "python.exe"),
+            ])
+        candidates.extend([
+            r"C:\ProgramData\anaconda3\envs\Qt\python.exe",
+            r"C:\ProgramData\miniconda3\envs\Qt\python.exe",
+        ])
+
+    for python_path in candidates:
         if os.path.exists(python_path):
             return python_path
-    
-    # 如果找不到，尝试使用当前 Python
+
     return sys.executable
 
 
@@ -91,7 +98,7 @@ def build():
     
     if result.returncode == 0:
         print("\n" + "=" * 60)
-        print("✓ 打包成功!")
+        print("[OK] 打包成功!")
         print("=" * 60)
         print(f"\n输出目录: dist/OpenFina/")
         print("\n使用说明:")
@@ -107,7 +114,7 @@ def build():
         print("  └── data/            # 用户数据（运行时创建）")
     else:
         print("\n" + "=" * 60)
-        print("✗ 打包失败!")
+        print("[FAIL] 打包失败!")
         print("=" * 60)
         print(f"返回码: {result.returncode}")
         return 1
@@ -144,9 +151,9 @@ def build_single_file():
     result = subprocess.run(cmd, capture_output=False, text=True)
     
     if result.returncode == 0:
-        print("\n✓ 打包成功! 输出: dist/OpenFina.exe")
+        print("\n[OK] 打包成功! 输出: dist/OpenFina.exe")
     else:
-        print("\n✗ 打包失败!")
+        print("\n[FAIL] 打包失败!")
         return 1
     
     return 0

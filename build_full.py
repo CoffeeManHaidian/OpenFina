@@ -12,6 +12,30 @@ import subprocess
 import argparse
 
 
+def get_conda_python():
+    """优先获取 Conda Qt 环境中的 Python。"""
+    candidates = []
+    user_profile = os.environ.get("USERPROFILE", "")
+
+    if sys.platform == "win32":
+        if user_profile:
+            candidates.extend([
+                os.path.join(user_profile, ".conda", "envs", "Qt", "python.exe"),
+                os.path.join(user_profile, "anaconda3", "envs", "Qt", "python.exe"),
+                os.path.join(user_profile, "miniconda3", "envs", "Qt", "python.exe"),
+            ])
+        candidates.extend([
+            r"C:\ProgramData\anaconda3\envs\Qt\python.exe",
+            r"C:\ProgramData\miniconda3\envs\Qt\python.exe",
+        ])
+
+    for python_path in candidates:
+        if os.path.exists(python_path):
+            return python_path
+
+    return sys.executable
+
+
 def clean_build():
     """清理之前的构建文件"""
     print("=" * 60)
@@ -36,7 +60,7 @@ def clean_build():
             print(f"  删除旧的 spec 文件: {file}")
             os.remove(file)
     
-    print("  ✓ 清理完成\n")
+    print("  [OK] 清理完成\n")
 
 
 def pyinstaller_build():
@@ -50,8 +74,9 @@ def pyinstaller_build():
         os.makedirs('data')
     
     # PyInstaller 命令
+    python_exe = get_conda_python()
     cmd = [
-        sys.executable, '-m', 'PyInstaller',
+        python_exe, '-m', 'PyInstaller',
         '--name=OpenFina',
         '--windowed',
         '--onedir',
@@ -68,16 +93,17 @@ def pyinstaller_build():
         'ui/login.py'
     ]
     
+    print(f"  使用 Python: {python_exe}")
     print(f"  执行: {' '.join(cmd[:5])}...")
     
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
-        print("  ✗ PyInstaller 打包失败!")
+        print("  [FAIL] PyInstaller 打包失败!")
         print(f"  错误: {result.stderr[-500:] if len(result.stderr) > 500 else result.stderr}")
         return False
     
-    print("  ✓ PyInstaller 打包成功\n")
+    print("  [OK] PyInstaller 打包成功\n")
     return True
 
 
@@ -111,7 +137,7 @@ def inno_setup_build():
     iscc_path = find_inno_setup()
     
     if not iscc_path:
-        print("  ✗ 未找到 Inno Setup!")
+        print("  [FAIL] 未找到 Inno Setup!")
         print("  请从以下地址下载安装：")
         print("  https://jrsoftware.org/isinfo.php")
         print("\n  安装完成后，将 ISCC.exe 所在目录添加到系统 PATH，")
@@ -123,7 +149,7 @@ def inno_setup_build():
     # 检查安装脚本是否存在
     iss_script = os.path.join('installer', 'OpenFina_setup.iss')
     if not os.path.exists(iss_script):
-        print(f"  ✗ 未找到安装脚本: {iss_script}")
+        print(f"  [FAIL] 未找到安装脚本: {iss_script}")
         return False
     
     # 执行编译
@@ -133,11 +159,11 @@ def inno_setup_build():
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
-        print("  ✗ Inno Setup 编译失败!")
+        print("  [FAIL] Inno Setup 编译失败!")
         print(f"  错误: {result.stderr}")
         return False
     
-    print("  ✓ 安装程序创建成功\n")
+    print("  [OK] 安装程序创建成功\n")
     return True
 
 
@@ -159,7 +185,7 @@ def show_result():
         setup_path = os.path.join('dist', setup_file)
         size_mb = os.path.getsize(setup_path) / (1024 * 1024)
         
-        print(f"\n✓ 安装程序已生成:")
+        print(f"\n[OK] 安装程序已生成:")
         print(f"  文件: {setup_path}")
         print(f"  大小: {size_mb:.2f} MB")
         print(f"\n使用说明:")
@@ -171,7 +197,7 @@ def show_result():
         print(f"  - 上传到网盘或网站供下载")
         print(f"  - 制作成压缩包发送")
     else:
-        print("\n✗ 未找到生成的安装程序")
+        print("\n[FAIL] 未找到生成的安装程序")
         print("  请检查 dist/ 目录")
 
 

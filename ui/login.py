@@ -11,14 +11,20 @@ import json
 
 from utils.password import PasswdManager
 from utils.path_helper import get_db_path, get_settings_path, get_icon_path
+from utils.logger import get_logger, log_event, install_global_exception_logger
 from main import MyWindow
+
+# 获取日志记录器
+logger = get_logger()
 # from ui.auto_login import AutoWidget
+DEFAULT_COMPANY = "OpenFina"
 
 
 class LoginWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.passwdManage = PasswdManager(get_db_path("users.db"))
+        log_event(logger, "初始化登录窗口", db_path=self.passwdManage.db_path)
         self.setupUi()
         self.setStyle()
         self.init_slot()
@@ -56,9 +62,6 @@ class LoginWidget(QWidget):
         # 用户信息
         self.inputWidget = QWidget()
         inputLayout = QVBoxLayout(self.inputWidget)
-        ## 公司
-        companyLb = QLabel("公司")
-        self.companyLine = QLineEdit()
         ## 用户名
         usernameLb = QLabel("用户名")
         self.usernameLine = QLineEdit()
@@ -114,9 +117,6 @@ class LoginWidget(QWidget):
         registerLayout.addSpacerItem(QSpacerItem(200, 0, QSizePolicy.Expanding))
         ## 输入区布局
         # inputLayout.addSpacerItem(QSpacerItem(10000, 10, QSizePolicy.Expanding))
-        inputLayout.addWidget(companyLb)
-        inputLayout.addWidget(self.companyLine)
-        inputLayout.addSpacerItem(QSpacerItem(10000, 20, QSizePolicy.Expanding))
         inputLayout.addWidget(usernameLb)
         inputLayout.addWidget(self.usernameLine)
         inputLayout.addSpacerItem(QSpacerItem(10000, 20, QSizePolicy.Expanding))
@@ -298,11 +298,13 @@ class LoginWidget(QWidget):
     def on_registerBtn_clicked(self):
         """注册"""
         # 获取用户名和密码
-        self.company = self.companyLine.text().strip()
+        self.company = DEFAULT_COMPANY
         self.username = self.usernameLine.text().strip()
         self.password = self.passwordLine.text().strip()
+        log_event(logger, "开始注册用户", username=self.username, company=self.company)
 
         if not self.username or not self.password:
+            log_event(logger, "注册失败：用户名或密码为空", level=40, username=self.username)
             QMessageBox.warning(self, "错误", "用户名和密码不能为空")
             return
         
@@ -312,6 +314,7 @@ class LoginWidget(QWidget):
         )
         result = self.passwdManage.cursor.fetchone()
         if result:
+            log_event(logger, "注册失败：用户名已存在", level=30, username=self.username)
             QMessageBox(self, "错误", "用户名已存在")
             return
         
@@ -324,10 +327,12 @@ class LoginWidget(QWidget):
                 (self.company, self.username, password_hash)
             )
             self.passwdManage.conn.commit()
+            log_event(logger, "注册成功", username=self.username, company=self.company)
             
             QMessageBox.information(self, "成功", "用户注册成功！")
             
         except Exception as e:
+            logger.exception("注册失败")
             QMessageBox.critical(self, "错误", f"注册失败: {str(e)}")
 
     def update_password_visibility(self):
@@ -348,21 +353,23 @@ class LoginWidget(QWidget):
     def on_loginBtn_clicked(self):
         """登录"""
         # 获取用户名和密码
-        self.company = self.companyLine.text().strip()
         self.username = self.usernameLine.text().strip()
         self.password = self.passwordLine.text().strip()
+        log_event(logger, "开始登录", username=self.username)
 
         if not self.username or not self.password:
+            log_event(logger, "登录失败：用户名或密码为空", level=40, username=self.username)
             QMessageBox.warning(self, "错误", "请输入用户名和密码")
             return
         
         self.passwdManage.cursor.execute(
-            "SELECT password FROM users WHERE username = ?",
+            "SELECT password, company FROM users WHERE username = ?",
             (self.username,)
         )
         result = self.passwdManage.cursor.fetchone()
 
         if not result:
+            log_event(logger, "登录失败：用户不存在", level=30, username=self.username)
             QMessageBox.warning(self, "错误", "用户不存在")
             return
         
@@ -370,16 +377,20 @@ class LoginWidget(QWidget):
         is_valid = self.passwdManage.verify_password(self.password, hash[0])
 
         if is_valid:
+            self.company = result[1] or DEFAULT_COMPANY
+            log_event(logger, "登录成功", username=self.username, company=self.company, remember=self.keepBox.isChecked())
             # QMessageBox.information(self, "成功", "登录成功!")
             self.save_settings()
             self.switch_2_main()
         else:
+            log_event(logger, "登录失败：密码错误", level=30, username=self.username)
             QMessageBox.warning(self, "错误", "用户名或密码错误")
 
     def switch_2_main(self):
         """跳转到主界面"""
-        MainWindow = MyWindow(self.username, self.company)
-        MainWindow.show()
+        log_event(logger, "进入主界面", username=self.username, company=self.company)
+        self.mainWindow = MyWindow(self.username, self.company)
+        self.mainWindow.show()
 
         self.close()
 
@@ -396,6 +407,7 @@ class LoginWidget(QWidget):
             }        
         with open(get_settings_path(), 'w', encoding='utf-8') as f:
             json.dump(settings, f)
+        log_event(logger, "保存登录设置", settings_path=get_settings_path(), remember=settings.get("remember_state", False), username=self.username)
 
 
 class AutoWidget(QWidget):
@@ -404,6 +416,7 @@ class AutoWidget(QWidget):
 
         self.passwdManage = PasswdManager(get_db_path("users.db"))
         self.user_info()
+        log_event(logger, "初始化自动登录窗口", username=self.username, company=self.company)
         self.setupUi()
         self.setStyle()
         self.init_slot()
@@ -434,7 +447,7 @@ class AutoWidget(QWidget):
         self.userLb.setPixmap(QPixmap(get_icon_path("user.png")))
         self.usernameLb = QLabel(self.username)
         self.usernameLb.setObjectName("usernameLb")
-        self.companyLb = QLabel(self.company)
+        self.companyLb = QLabel(DEFAULT_COMPANY)
         self.companyLb.setObjectName("companyLb")
         self.confirmBtn = QPushButton("确认登录")
         self.cancelBtn = QPushButton("取消登录")
@@ -505,20 +518,24 @@ class AutoWidget(QWidget):
 
     def on_confirmBtn_clicked(self):
         """确认登录"""
-        MainWindow = MyWindow(self.username, self.company)
-        MainWindow.show()
+        log_event(logger, "确认自动登录", username=self.username, company=self.company)
+        self.mainWindow = MyWindow(self.username, self.company)
+        self.mainWindow.show()
 
         self.close()
 
     def on_cancelBtn_clicked(self):
         """取消登录"""
+        log_event(logger, "取消自动登录，返回普通登录", username=self.username)
         self.logingWidget = LoginWidget()
         self.logingWidget.show()
         self.close()
 
     def user_info(self):
         """获取用户信息"""
-        with open(get_settings_path(), 'r', encoding='utf-8') as f:
+        settings_path = get_settings_path()
+        log_event(logger, "加载自动登录设置", settings_path=settings_path)
+        with open(settings_path, 'r', encoding='utf-8') as f:
             settings = json.load(f)
         
         self.username = settings['username']
@@ -530,17 +547,21 @@ class AutoWidget(QWidget):
         result = self.passwdManage.cursor.fetchone()
 
         if result:
-            self.company = result[0]
+            self.company = result[0] or DEFAULT_COMPANY
+            log_event(logger, "自动登录用户信息加载成功", username=self.username, company=self.company)
         else:
-            QMessageBox.warning(self, "错误", "该用户未录入公司，请联系公司管理员")
+            self.company = DEFAULT_COMPANY
+            log_event(logger, "自动登录用户缺少公司信息，使用默认公司", level=30, username=self.username, company=self.company)
         
 
 def load_settings():        
     """加载软件配置"""
     settings_path = get_settings_path()
+    log_event(logger, "检查登录设置文件", settings_path=settings_path)
     if os.path.exists(settings_path):
         with open(settings_path, 'r', encoding='utf-8') as f:
             settings = json.load(f)
+        log_event(logger, "加载登录设置成功", settings_path=settings_path, remember=settings.get('remember_state', False), username=settings.get('username', ''))
     
         if settings['remember_state']:
             return True
@@ -548,10 +569,16 @@ def load_settings():
             return False
     
     else:
+        log_event(logger, "登录设置文件不存在，使用普通登录", level=30, settings_path=settings_path)
         return False
 
 
 if __name__ == "__main__":
+    # 记录系统启动信息
+    from utils.logger import log_system_info
+    log_system_info(logger)
+    install_global_exception_logger(logger)
+    
     is_remember = load_settings()
 
     app = QApplication([])

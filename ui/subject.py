@@ -1,19 +1,28 @@
 import json
 import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from PySide6.QtWidgets import (QWidget, QLineEdit, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QTreeWidgetItem, QTreeWidget, QApplication, QHeaderView,
     QSpacerItem, QSizePolicy, QInputDialog, QMessageBox)
 from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QFont, QColor
 
+from utils.path_helper import get_subject_json_path
+from utils.logger import get_logger, log_event
+
+logger = get_logger()
+
 
 class SubjectWindow(QWidget):
     subFunc = Signal(str, str)
 
-    def __init__(self, json_path=r"source\subject.json"):
+    def __init__(self, json_path=None):
         super().__init__()
-        # 修正路径分隔符，使用os.path处理
-        self.json_path = json_path.replace("\\", os.path.sep)
+        if json_path is None:
+            json_path = get_subject_json_path()
+        self.json_path = os.path.normpath(json_path)
+        log_event(logger, "初始化科目窗口", subject_json=self.json_path)
         self.all_items = []  # 存储所有科目节点用于搜索
         self.setupUi()
         self.load_tree()
@@ -102,10 +111,13 @@ class SubjectWindow(QWidget):
     def load_tree(self):
         """将JSON数据加载到QTreeWidget的通用函数"""
         try:
+            log_event(logger, "加载科目文件", subject_json=self.json_path)
             with open(self.json_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
         except FileNotFoundError:
-            QMessageBox.setText(f"找不到{self.json_path}文件")
+            logger.exception("科目文件缺失")
+            QMessageBox.critical(self, "文件缺失", f"找不到科目文件:\n{self.json_path}")
+            return
 
         self.subjectTree.clear()
         self.all_items.clear()
@@ -172,7 +184,7 @@ class SubjectWindow(QWidget):
         self.subjectTree.resizeColumnToContents(0)
         # self.subjectTree.expandAll()
         
-        print(f"加载完成，共加载 {len(self.all_items)} 个科目")
+        log_event(logger, "科目文件加载完成", count=len(self.all_items), subject_json=self.json_path)
     
     def filter_items(self, search_text):
         """根据搜索文本过滤项目"""
@@ -259,7 +271,7 @@ class SubjectWindow(QWidget):
         if "(" in category:
             category = category.split("(")[0].strip()
         
-        print(f"选中的科目: {category} - {code} - {name}")
+        log_event(logger, "选择科目", category=category, code=code, name=name)
         
         # 发射信号：第一个参数为科目编号，第二个参数为科目名称
         # 如果需要其他格式，可以调整这里
@@ -321,7 +333,7 @@ class SubjectWindow(QWidget):
                             subject["subjects"].append({"code": sub_code, "name": sub_name})
                         else:
                             subject["subjects"] = [{"code": sub_code, "name": sub_name}]
-                        print(f"成功在科目 {parent_code} 下添加子目录 {sub_code}")
+                        log_event(logger, "新增科目成功", parent_code=parent_code, code=sub_code, name=sub_name)
                         
                         # 保存回文件
                         with open(json_file_path, 'w', encoding='utf-8') as file:
@@ -366,7 +378,7 @@ class SubjectWindow(QWidget):
                 if "subjects" in item:
                     for i, subitem in enumerate(item['subjects']):
                         if subitem['code'] == target_code:
-                            print(subitem)
+                            log_event(logger, "删除科目", code=subitem['code'], name=subitem['name'])
                             item['subjects'].pop(i)
             return data
         

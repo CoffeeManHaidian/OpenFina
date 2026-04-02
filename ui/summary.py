@@ -11,6 +11,10 @@ from PySide6.QtGui import QFont, QColor
 from models.voucher import VoucherManager
 from utils.subject import SubjectLookup
 from ui.filter import FilterWidget
+from utils.path_helper import get_data_dir, get_subject_json_path
+from utils.logger import get_logger, log_event
+
+logger = get_logger()
 
 
 class VoucherSummary(QWidget):
@@ -19,7 +23,9 @@ class VoucherSummary(QWidget):
         
         # 参数设置
         self.filterWidget = FilterWidget()
-        self.subjectManage = SubjectLookup("source\\subject.json")
+        subject_json = get_subject_json_path()
+        log_event(logger, "初始化凭证汇总窗口", company=user_info.get('company', ''), subject_json=subject_json)
+        self.subjectManage = SubjectLookup(subject_json)
         # UI
         self.user_info = user_info
         self.setupUi()
@@ -107,6 +113,7 @@ class VoucherSummary(QWidget):
         info: [会计期间开始年，开始月，结束年，结束月，起始编号+科目，结束编号+科目，凭证等级]
         """
         if not info or len(info) < 7:
+            log_event(logger, "忽略无效汇总条件", level=30, raw_info=info)
             return
         
         # 解析筛选信息并保存为字典
@@ -130,13 +137,26 @@ class VoucherSummary(QWidget):
             'voucher_level': info[6],  # 凭证等级
             'company': self.user_info.get('company', '') if hasattr(self, 'user_info') else ''
         }
+        log_event(
+            logger,
+            "收到汇总条件",
+            company=self.filter_dict['company'],
+            start_date=start_date.toString("yyyy-MM-dd"),
+            end_date=end_date.toString("yyyy-MM-dd"),
+            start_subject=self.filter_dict['start_subject'],
+            end_subject=self.filter_dict['end_subject'],
+            voucher_level=self.filter_dict['voucher_level']
+        )
         
-        # 链接数据库
-        db_path = f"data\\{self.filter_dict['company']}_{start_year}_vouchers.db"
+        # 链接数据库 - 使用绝对路径
+        db_filename = f"{self.filter_dict['company']}_{start_year}_vouchers.db"
+        db_path = os.path.join(get_data_dir(), db_filename)
         if not os.path.exists(db_path):
+            log_event(logger, "汇总账套不存在", level=30, db_path=db_path)
             return
         
         self.voucherManage = VoucherManager(db_path)
+        log_event(logger, "开始执行凭证汇总", db_path=db_path)
 
         # 清空旧数据（保留表头行0-1）
         for row in range(2, self.table.rowCount()):
@@ -146,6 +166,7 @@ class VoucherSummary(QWidget):
         self.beginning_balance()    # 期初余额
         self.current_balance()      # 本期发生
         self.ending_balance()       # 期末余额
+        log_event(logger, "凭证汇总完成", rows=self.table.rowCount())
 
     def beginning_balance(self):
         """计算期初余额（上一个月的期末余额）"""
@@ -179,6 +200,7 @@ class VoucherSummary(QWidget):
         
         # 获取上个月的科目汇总数据（作为期初余额）
         result = self.voucherManage.summary_subject(prev_start_date, prev_end_date)
+        log_event(logger, "计算期初余额", result_count=len(result), start_date=prev_start_date.toString("yyyy-MM-dd"), end_date=prev_end_date.toString("yyyy-MM-dd"))
         
         # 创建期初余额字典，用于快速查找
         beginning_balances = {}
@@ -193,6 +215,7 @@ class VoucherSummary(QWidget):
         current_start = self.filter_dict['start_date']
         current_end = self.filter_dict['end_date']
         current_result = self.voucherManage.summary_subject(current_start, current_end)
+        log_event(logger, "期初余额关联本期科目", result_count=len(current_result))
         
         # 收集所有需要显示的科目代码（本期有的 + 上期有的）
         all_subjects = set(beginning_balances.keys())
@@ -242,6 +265,7 @@ class VoucherSummary(QWidget):
         
         # 获取科目汇总数据（本期发生）
         result = self.voucherManage.summary_subject(start_date, end_date)
+        log_event(logger, "计算本期发生", result_count=len(result), start_date=start_date.toString("yyyy-MM-dd"), end_date=end_date.toString("yyyy-MM-dd"))
         
         # 遍历结果填充本期发生列（第4列借方，第5列贷方）
         data_row = 2  # 数据从第2行开始
@@ -286,6 +310,7 @@ class VoucherSummary(QWidget):
         
         # 获取科目汇总数据
         result = self.voucherManage.summary_subject(start_date, end_date)
+        log_event(logger, "计算期末余额", result_count=len(result), start_date=start_date.toString("yyyy-MM-dd"), end_date=end_date.toString("yyyy-MM-dd"))
 
         # 填充数据
         data_row = 2  # 数据从第2行开始
