@@ -8,17 +8,19 @@ from PySide6.QtCore import Qt, QDateTime, Signal
 from PySide6.QtGui import QColor
 
 from ui.subject import SubjectWindow
+from utils.theme import material_widget_style
 
 
 class FilterWidget(QWidget):
     filer_info = Signal(list)
 
-    def __init__(self):
+    def __init__(self, bookset_db_path):
         super().__init__()
-
-        self.subjectSelector = SubjectWindow() 
+        self.bookset_db_path = bookset_db_path
+        self.subjectSelector = SubjectWindow(bookset_db_path)
 
         self.setupUi()
+        self.setStyle()
         self.init_slot()
 
     def setupUi(self):
@@ -128,6 +130,7 @@ class FilterWidget(QWidget):
 
     def setStyle(self):
         """界面设置"""
+        self.setStyleSheet(material_widget_style())
 
     def init_slot(self):
         """绑定信号与槽"""
@@ -200,7 +203,11 @@ class FilterWidget(QWidget):
 
 if __name__ == "__main__":
     app = QApplication([])
-    window = FilterWidget()
+    window = FilterWidget("")
 
     window.show()
     app.exec()
+
+
+
+

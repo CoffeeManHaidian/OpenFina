@@ -9,27 +9,45 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
-from ui.Ui_mainwindow import Ui_MainWindow
+from ui.mainwindow import Ui_MainWindow
 from ui.certificate import Certification
 from ui.summary import VoucherSummary
 from utils.logger import get_logger, log_system_info
+from utils.theme import chrome_main_window_style
 
 logger = get_logger()
 
 
 class MyWindow(QMainWindow, Ui_MainWindow):
-    def __init__(self, username, company):
+    def __init__(self, user_context):
         super().__init__()
-        self.user_info = {
-            "username": username,
-            "company": company,
-        }
+        if isinstance(user_context, dict):
+            self.user_info = user_context
+        else:
+            username, company = user_context
+            self.user_info = {
+                "username": username,
+                "company": company,
+            }
 
         self.setupUi(self)
+        self.setObjectName("ChromeStyleMainWindow")
+        self.setStyleSheet(chrome_main_window_style())
         self.setWindowFlag(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        self.update_shell_context()
         self.redefine_window_border_btn()
         self.init_solt()
+
+    def update_shell_context(self):
+        enterprise_name = self.user_info.get("enterprise_name") or self.user_info.get("company", "OpenFina")
+        fiscal_year = self.user_info.get("fiscal_year", "")
+        username = self.user_info.get("username", "")
+
+        if hasattr(self, "windowTitleLabel"):
+            self.windowTitleLabel.setText("OpenFina")
+        if hasattr(self, "windowContextLabel"):
+            self.windowContextLabel.setText(f"{enterprise_name} / {fiscal_year} / {username}".strip(" /"))
 
     def on_maxBtn_clicked(self):
         """最大化窗口"""
@@ -38,37 +56,26 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             icon = QIcon()
             icon.addFile(u":/tittle/icons/maximize.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
             self.btn_max.setIcon(icon)
+            self.btn_max.setText(u"▢")
             self.btn_max.setIconSize(QSize(10, 10))
-            self.widget.setStyleSheet(
-                u"#widget{\n"
-                "\tbackground-color: rgb(243, 243, 243);\n"
-                "\tborder-radius: 10px;\n"
-                "}"
-            )
+            self.widget.setStyleSheet("#widget{background-color:#f8f9fa;border-radius:18px;}")
         else:
             self.showMaximized()
             icon = QIcon()
             icon.addFile(u":/tittle/icons/reduction.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
             self.btn_max.setIcon(icon)
+            self.btn_max.setText(u"❐")
             self.btn_max.setIconSize(QSize(10, 10))
-            self.widget.setStyleSheet(
-                u"#widget{\n"
-                "\tbackground-color: rgb(243, 243, 243);\n"
-                "\tborder-radius: 0px;\n"
-                "}"
-            )
+            self.widget.setStyleSheet("#widget{background-color:#f8f9fa;border-radius:0px;}")
 
     def double_clicked_border_bar(self, event):
-        """双击顶部标题条,使其在最大化和还原之间切换"""
         if event.button() == Qt.MouseButton.LeftButton:
             self.on_maxBtn_clicked()
 
     def move_title_bar(self, event):
-        """拖动顶部标题条"""
         self.windowHandle().startSystemMove()
 
     def redefine_window_border_btn(self):
-        """使模拟边框的3个按钮生效(关闭、最小化、最大化、双击标题框)"""
         self.btn_close.clicked.connect(self.close)
         self.btn_min.clicked.connect(self.showMinimized)
         self.btn_max.clicked.connect(self.on_maxBtn_clicked)
@@ -76,7 +83,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.TittleBar.mouseMoveEvent = self.move_title_bar
 
     def init_solt(self):
-        """初始化槽函数"""
         self.Ladger.clicked.connect(lambda: self.goto_subfunc_page(1))
         self.Report.clicked.connect(lambda: self.goto_subfunc_page(2))
 
@@ -85,18 +91,17 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
         self.inputBtn.clicked.connect(self.on_inputBtn_clicked)
         self.queryBtn.clicked.connect(self.on_queryBtn_clicked)
+        self.postBtn.clicked.connect(self.on_postBtn_clicked)
         self.summaryBtn.clicked.connect(self.on_summaryBtn_clicked)
+        self.btn_review.clicked.connect(self.on_reviewBtn_clicked)
 
     def goto_subfunc_page(self, number):
-        """切换子功能窗口页面"""
         self.wgt_SubFunc.setCurrentIndex(number)
 
     def goto_detailfunc_page(self, number):
-        """切换明细功能窗口页面"""
         self.wgt_DetailFunc.setCurrentIndex(number)
 
     def on_inputBtn_clicked(self):
-        """打开凭证录入窗口"""
         if hasattr(self, "inputWindow") and self.inputWindow.isVisible():
             self.inputWindow.raise_()
             self.inputWindow.activateWindow()
@@ -110,7 +115,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             QMessageBox.critical(self, "错误", f"打开凭证录入窗口失败:\n{exc}")
 
     def on_queryBtn_clicked(self):
-        """凭证查询功能"""
         if hasattr(self, "queryWindow") and self.queryWindow.isVisible():
             self.queryWindow.raise_()
             self.queryWindow.activateWindow()
@@ -123,8 +127,20 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             logger.exception("打开凭证查询窗口失败")
             QMessageBox.critical(self, "错误", f"打开凭证查询窗口失败:\n{exc}")
 
+    def on_postBtn_clicked(self):
+        if hasattr(self, "postWindow") and self.postWindow.isVisible():
+            self.postWindow.raise_()
+            self.postWindow.activateWindow()
+            return
+
+        try:
+            self.postWindow = Certification(self.user_info, 3)
+            self.postWindow.show()
+        except Exception as exc:
+            logger.exception("打开凭证过账窗口失败")
+            QMessageBox.critical(self, "错误", f"打开凭证过账窗口失败:\n{exc}")
+
     def on_summaryBtn_clicked(self):
-        """凭证汇总"""
         if hasattr(self, "summaryWindow") and self.summaryWindow.isVisible():
             self.summaryWindow.raise_()
             self.summaryWindow.activateWindow()
@@ -138,11 +154,34 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             logger.exception("打开凭证汇总窗口失败")
             QMessageBox.critical(self, "错误", f"打开凭证汇总窗口失败:\n{exc}")
 
+    def on_reviewBtn_clicked(self):
+        if hasattr(self, "reviewWindow") and self.reviewWindow.isVisible():
+            self.reviewWindow.raise_()
+            self.reviewWindow.activateWindow()
+            return
+
+        try:
+            self.reviewWindow = Certification(self.user_info, 4)
+            self.reviewWindow.show()
+        except Exception as exc:
+            logger.exception("打开双敲审核窗口失败")
+            QMessageBox.critical(self, "错误", f"打开双敲审核窗口失败:\n{exc}")
+
 
 if __name__ == "__main__":
     log_system_info(logger)
 
     app = QApplication([])
-    mainwindow = MyWindow("demo", "OpenFina")
+    mainwindow = MyWindow(
+        {
+            "username": "demo",
+            "user_id": 1,
+            "bookset_id": 1,
+            "enterprise_name": "OpenFina",
+            "company": "OpenFina",
+            "fiscal_year": 2026,
+            "bookset_db_path": "",
+        }
+    )
     mainwindow.show()
     app.exec()

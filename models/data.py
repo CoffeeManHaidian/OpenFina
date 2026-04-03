@@ -26,8 +26,12 @@ class Voucher:
     attach_count: int = 0  # 附件张数
     preparer: str = ""  # 制单人
     reviewer: str = ""  # 审核人
+    reviewer_account: str = ""  # 审核操作账号
+    poster: str = ""  # 过账人
+    poster_account: str = ""  # 过账操作账号
     attention: str = ""  # 经办人
     created_time: date = None  # 创建\修改时间
+    posted_time: date = None  # 过账时间
     details: List[VoucherDetail] = None
     
     def __post_init__(self):

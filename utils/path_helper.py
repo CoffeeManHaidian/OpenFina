@@ -1,6 +1,7 @@
 """路径处理工具模块 - 统一开发环境和 PyInstaller 打包环境的路径行为。"""
 import os
 import sys
+import re
 
 from utils.logger import get_logger, log_db_path
 
@@ -33,6 +34,11 @@ def get_data_dir():
     return ensure_dir(os.path.join(get_app_dir(), "data"))
 
 
+def get_booksets_dir():
+    """获取账套数据库目录。"""
+    return ensure_dir(os.path.join(get_data_dir(), "booksets"))
+
+
 def get_resource_dir():
     """获取资源目录路径。"""
     return get_bundle_dir()
@@ -53,6 +59,32 @@ def get_db_path(db_name):
     # 记录数据库路径信息
     log_db_path(logger, db_name, db_path)
     
+    return db_path
+
+
+def get_user_db_path():
+    """获取用户中心数据库路径。"""
+    return get_db_path("users.db")
+
+
+def slugify_name(name):
+    """将企业名称转为安全文件名片段。"""
+    value = (name or "").strip().lower()
+    value = re.sub(r"[^0-9a-zA-Z\u4e00-\u9fa5]+", "_", value)
+    value = re.sub(r"_+", "_", value).strip("_")
+    return value or "bookset"
+
+
+def build_bookset_db_filename(enterprise_name, fiscal_year, bookset_id):
+    """生成账套数据库文件名。"""
+    slug = slugify_name(enterprise_name)
+    return f"{slug}_{fiscal_year}_{bookset_id}.db"
+
+
+def get_bookset_db_path(db_filename):
+    """获取账套数据库完整路径。"""
+    db_path = os.path.join(get_booksets_dir(), db_filename)
+    log_db_path(logger, db_filename, db_path)
     return db_path
 
 

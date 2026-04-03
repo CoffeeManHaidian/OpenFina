@@ -91,7 +91,7 @@ def pyinstaller_build():
         '--hidden-import', 'PySide6.QtCore',
         '--hidden-import', 'PySide6.QtGui',
         '--hidden-import', 'PySide6.QtWidgets',
-        'ui/login.py',
+        'app/bootstrap.py',
     ]
 
     print(f'  使用 Python: {python_exe}')

@@ -3,16 +3,15 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from PySide6.QtWidgets import (QApplication, QWidget, QLabel, QTableWidget, QPushButton,
-    QLineEdit, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTableWidgetItem,
-    QDialog)
+    QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QTableWidgetItem)
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont, QColor
 
 from models.voucher import VoucherManager
 from utils.subject import SubjectLookup
 from ui.filter import FilterWidget
-from utils.path_helper import get_data_dir, get_subject_json_path
 from utils.logger import get_logger, log_event
+from utils.theme import material_widget_style
 
 logger = get_logger()
 
@@ -22,12 +21,17 @@ class VoucherSummary(QWidget):
         super().__init__()
         
         # 参数设置
-        self.filterWidget = FilterWidget()
-        subject_json = get_subject_json_path()
-        log_event(logger, "初始化凭证汇总窗口", company=user_info.get('company', ''), subject_json=subject_json)
-        self.subjectManage = SubjectLookup(subject_json)
-        # UI
         self.user_info = user_info
+        self.bookset_db_path = user_info["bookset_db_path"]
+        self.filterWidget = FilterWidget(self.bookset_db_path)
+        log_event(
+            logger,
+            "初始化凭证汇总窗口",
+            enterprise_name=user_info.get("enterprise_name", user_info.get("company", "")),
+            db_path=self.bookset_db_path,
+        )
+        self.subjectManage = SubjectLookup(self.bookset_db_path)
+        # UI
         self.setupUi()
         self.setStyle()
         self.init_slot()
@@ -37,6 +41,17 @@ class VoucherSummary(QWidget):
         self.resize(1100, 600)
 
         mainLayout = QVBoxLayout()
+
+        self.toolbarWidget = QWidget()
+        toolbarLayout = QHBoxLayout(self.toolbarWidget)
+        toolbarLayout.setContentsMargins(0, 0, 0, 0)
+
+        self.conditionLabel = QLabel("当前条件: 未设置")
+        self.filterBtn = QPushButton("切换汇总条件")
+
+        toolbarLayout.addWidget(self.conditionLabel)
+        toolbarLayout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        toolbarLayout.addWidget(self.filterBtn)
 
         ## 汇总表
         self.table = QTableWidget()
@@ -93,6 +108,7 @@ class VoucherSummary(QWidget):
 
         # 内容布局
         ## 内容
+        mainLayout.addWidget(self.toolbarWidget)
         mainLayout.addWidget(self.table)
         self.setLayout(mainLayout)
 
@@ -100,13 +116,50 @@ class VoucherSummary(QWidget):
         mainLayout.setSpacing(0)
 
     def setStyle(self):
-        """设置页面风格"""       
-        # 设置无边框
-        # self.setStyleSheet("border: none;")
+        """设置页面风格"""
+        self.setStyleSheet(material_widget_style())
 
     def init_slot(self):
         """绑定信号与槽"""
-        self.filterWidget.filer_info.connect(self.show_info)      
+        self.filterWidget.filer_info.connect(self.show_info)
+        self.filterBtn.clicked.connect(self.open_filter_widget)
+
+    def open_filter_widget(self):
+        """打开汇总条件窗口"""
+        self.sync_filter_widget()
+        self.filterWidget.show()
+        self.filterWidget.raise_()
+        self.filterWidget.activateWindow()
+
+    def sync_filter_widget(self):
+        """将当前条件同步回筛选窗口，便于继续修改"""
+        if not hasattr(self, 'filter_dict'):
+            return
+
+        start_date = self.filter_dict['start_date']
+        end_date = self.filter_dict['end_date']
+        self.filterWidget.yearSSpin.setDateTime(start_date.startOfDay())
+        self.filterWidget.monthSSpin.setDateTime(start_date.startOfDay())
+        self.filterWidget.yearESpin.setDateTime(end_date.startOfDay())
+        self.filterWidget.monthESpin.setDateTime(end_date.startOfDay())
+        self.filterWidget.subjectLine.setText(self.filter_dict.get('start_subject_text', ''))
+        self.filterWidget.untilLine.setText(self.filter_dict.get('end_subject_text', ''))
+        self.filterWidget.levelCombo.setCurrentText(str(self.filter_dict.get('voucher_level', '1')))
+
+    def update_condition_label(self):
+        """更新当前汇总条件显示"""
+        if not hasattr(self, 'filter_dict'):
+            self.conditionLabel.setText("当前条件: 未设置")
+            return
+
+        start_date = self.filter_dict['start_date'].toString("yyyy-MM")
+        end_date = self.filter_dict['end_date'].toString("yyyy-MM")
+        start_subject = self.filter_dict.get('start_subject_text') or "不限"
+        end_subject = self.filter_dict.get('end_subject_text') or "不限"
+        voucher_level = self.filter_dict.get('voucher_level', '1')
+        self.conditionLabel.setText(
+            f"当前条件: 期间 {start_date} 至 {end_date} | 科目 {start_subject} 至 {end_subject} | 级别 {voucher_level}"
+        )
 
     def show_info(self, info):
         """解析筛选信息并保存为字典
@@ -134,29 +187,29 @@ class VoucherSummary(QWidget):
             'end_date': end_date,
             'start_subject': info[4].split()[0] if info[4] else "",
             'end_subject': info[5].split()[0] if info[5] else "",
+            'start_subject_text': info[4] if info[4] else "",
+            'end_subject_text': info[5] if info[5] else "",
             'voucher_level': info[6],  # 凭证等级
-            'company': self.user_info.get('company', '') if hasattr(self, 'user_info') else ''
+            'enterprise_name': self.user_info.get('enterprise_name', self.user_info.get('company', '')) if hasattr(self, 'user_info') else ''
         }
         log_event(
             logger,
             "收到汇总条件",
-            company=self.filter_dict['company'],
+            enterprise_name=self.filter_dict['enterprise_name'],
             start_date=start_date.toString("yyyy-MM-dd"),
             end_date=end_date.toString("yyyy-MM-dd"),
             start_subject=self.filter_dict['start_subject'],
             end_subject=self.filter_dict['end_subject'],
             voucher_level=self.filter_dict['voucher_level']
         )
+        self.update_condition_label()
         
-        # 链接数据库 - 使用绝对路径
-        db_filename = f"{self.filter_dict['company']}_{start_year}_vouchers.db"
-        db_path = os.path.join(get_data_dir(), db_filename)
-        if not os.path.exists(db_path):
-            log_event(logger, "汇总账套不存在", level=30, db_path=db_path)
+        if not os.path.exists(self.bookset_db_path):
+            log_event(logger, "汇总账套不存在", level=30, db_path=self.bookset_db_path)
             return
         
-        self.voucherManage = VoucherManager(db_path)
-        log_event(logger, "开始执行凭证汇总", db_path=db_path)
+        self.voucherManage = VoucherManager(self.bookset_db_path)
+        log_event(logger, "开始执行凭证汇总", db_path=self.bookset_db_path)
 
         # 清空旧数据（保留表头行0-1）
         for row in range(2, self.table.rowCount()):
@@ -359,7 +412,21 @@ class VoucherSummary(QWidget):
 
 if __name__ == "__main__":
     app = QApplication([])
-    window = VoucherSummary([])
+    window = VoucherSummary(
+        {
+            "username": "demo",
+            "user_id": 1,
+            "bookset_id": 1,
+            "enterprise_name": "OpenFina",
+            "company": "OpenFina",
+            "fiscal_year": 2026,
+            "bookset_db_path": "",
+        }
+    )
 
     window.show()
     app.exec()
+
+
+
+

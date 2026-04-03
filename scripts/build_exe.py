@@ -82,7 +82,7 @@ def build():
         '--hidden-import', 'PySide6.QtCore',
         '--hidden-import', 'PySide6.QtGui',
         '--hidden-import', 'PySide6.QtWidgets',
-        'ui/login.py',
+        'app/bootstrap.py',
     ]
 
     print(f"\n执行命令: {' '.join(cmd)}")
@@ -136,7 +136,7 @@ def build_single_file():
         '--hidden-import', 'bcrypt',
         '--hidden-import', 'numpy',
         '--hidden-import', 'pandas',
-        'ui/login.py',
+        'app/bootstrap.py',
     ]
 
     print(f"执行命令: {' '.join(cmd)}")

@@ -3,16 +3,11 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 import sqlite3
-import numpy as np
-import pandas as pd
-import json
 from typing import List, Optional
 from contextlib import contextmanager
 from PySide6.QtCore import QDate
 
 from models.data import Voucher, VoucherDetail
-from utils.subject import SubjectLookup
-from utils.path_helper import get_data_dir
 from utils.logger import get_logger, log_event
 
 logger = get_logger()
@@ -51,8 +46,12 @@ class VoucherManager:
                     attach_count INTEGER DEFAULT 0,                 -- 附件张数
                     preparer TEXT,                                  -- 制单人
                     reviewer TEXT,                                  -- 审核人
+                    reviewer_account TEXT,                          -- 审核操作账号
+                    poster TEXT,                                    -- 过账人
+                    poster_account TEXT,                            -- 过账操作账号
                     attention TEXT,                                 -- 经办人
                     created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   -- 凭证时间
+                    posted_time TIMESTAMP,                          -- 过账时间
                     UNIQUE(voucher_id, voucher_no)
                 )
             """)
@@ -76,6 +75,18 @@ class VoucherManager:
             # 创建索引
             conn.execute("CREATE INDEX IF NOT EXISTS idx_voucher_date ON voucher_master(voucher_date)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_voucher_details ON voucher_details(voucher_id)")
+
+            columns = {
+                row["name"] for row in conn.execute("PRAGMA table_info(voucher_master)").fetchall()
+            }
+            if "poster" not in columns:
+                conn.execute("ALTER TABLE voucher_master ADD COLUMN poster TEXT")
+            if "reviewer_account" not in columns:
+                conn.execute("ALTER TABLE voucher_master ADD COLUMN reviewer_account TEXT")
+            if "poster_account" not in columns:
+                conn.execute("ALTER TABLE voucher_master ADD COLUMN poster_account TEXT")
+            if "posted_time" not in columns:
+                conn.execute("ALTER TABLE voucher_master ADD COLUMN posted_time TIMESTAMP")
     
     def save_voucher(self, voucher: Voucher) -> int:
         """保存凭证（包含事务）"""
@@ -94,8 +105,11 @@ class VoucherManager:
                 log_event(logger, "写入新凭证主表", voucher_no=voucher.voucher_no)
                 cursor.execute("""
                     INSERT INTO voucher_master 
-                    (voucher_no, voucher_type, voucher_date, attach_count, preparer, reviewer, attention)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (
+                        voucher_no, voucher_type, voucher_date, attach_count,
+                        preparer, reviewer, reviewer_account, poster, poster_account, attention
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     voucher.voucher_no,
                     voucher.voucher_type,
@@ -103,6 +117,9 @@ class VoucherManager:
                     voucher.attach_count,
                     voucher.preparer,
                     voucher.reviewer,
+                    voucher.reviewer_account,
+                    voucher.poster,
+                    voucher.poster_account,
                     voucher.attention
                 ))
                 voucher_id = cursor.lastrowid
@@ -113,7 +130,8 @@ class VoucherManager:
                 cursor.execute("""
                     UPDATE voucher_master SET
                     voucher_no = ?, voucher_type = ?, voucher_date = ?, attach_count = ?,
-                    preparer = ?, reviewer = ?, attention = ?
+                    preparer = ?, reviewer = ?, reviewer_account = ?,
+                    poster = ?, poster_account = ?, attention = ?
                     WHERE voucher_id = ?
                 """, (
                     voucher.voucher_no,
@@ -122,6 +140,9 @@ class VoucherManager:
                     voucher.attach_count,
                     voucher.preparer,
                     voucher.reviewer,
+                    voucher.reviewer_account,
+                    voucher.poster,
+                    voucher.poster_account,
                     voucher.attention,
                     voucher_id
                 ))
@@ -175,11 +196,17 @@ class VoucherManager:
             voucher = Voucher(
                 voucher_id=master_row['voucher_id'],
                 voucher_no=master_row['voucher_no'],
+                voucher_type=master_row['voucher_type'],
                 voucher_date=master_row['voucher_date'],
                 attach_count=master_row['attach_count'],
                 preparer=master_row['preparer'],
                 reviewer=master_row['reviewer'],
-                attention=master_row['attention']
+                reviewer_account=master_row['reviewer_account'],
+                poster=master_row['poster'],
+                poster_account=master_row['poster_account'],
+                attention=master_row['attention'],
+                created_time=master_row['created_time'],
+                posted_time=master_row['posted_time']
             )
             
             # 添加明细
@@ -198,6 +225,195 @@ class VoucherManager:
             log_event(logger, "凭证查询成功", voucher_no=number, detail_count=len(voucher.details))
             
             return voucher        
+
+    def review_voucher(self, voucher_no: str, reviewer_name: str, reviewer_account: str):
+        """审核凭证"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            log_event(
+                logger,
+                "开始审核凭证",
+                db_path=self.db_path,
+                voucher_no=voucher_no,
+                reviewer=reviewer_name,
+                reviewer_account=reviewer_account,
+            )
+            cursor.execute(
+                """
+                SELECT voucher_id, preparer, reviewer
+                FROM voucher_master
+                WHERE voucher_no = ?
+                """,
+                (voucher_no,)
+            )
+            row = cursor.fetchone()
+
+            if row is None:
+                raise ValueError("凭证不存在")
+
+            if row["preparer"] == reviewer_name:
+                raise ValueError("制单人与审核人不能是同一人")
+
+            if row["reviewer"]:
+                raise ValueError(f"凭证已由 {row['reviewer']} 审核")
+
+            cursor.execute(
+                "UPDATE voucher_master SET reviewer = ?, reviewer_account = ? WHERE voucher_id = ?",
+                (reviewer_name, reviewer_account, row["voucher_id"])
+            )
+            log_event(
+                logger,
+                "凭证审核完成",
+                db_path=self.db_path,
+                voucher_no=voucher_no,
+                reviewer=reviewer_name,
+                reviewer_account=reviewer_account,
+            )
+
+    def cancel_review(self, voucher_no: str, reviewer_account: str):
+        """取消审核"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            log_event(
+                logger,
+                "开始取消审核",
+                db_path=self.db_path,
+                voucher_no=voucher_no,
+                reviewer_account=reviewer_account,
+            )
+            cursor.execute(
+                """
+                SELECT voucher_id, reviewer, reviewer_account, poster
+                FROM voucher_master
+                WHERE voucher_no = ?
+                """,
+                (voucher_no,)
+            )
+            row = cursor.fetchone()
+
+            if row is None:
+                raise ValueError("凭证不存在")
+
+            if not row["reviewer"]:
+                raise ValueError("凭证尚未审核")
+
+            if row["poster"]:
+                raise ValueError("凭证已过账，不能取消审核")
+
+            if not row["reviewer_account"]:
+                raise ValueError("历史数据缺少审核操作账号，不能取消审核")
+
+            if row["reviewer_account"] != reviewer_account:
+                raise ValueError(f"该凭证由 {row['reviewer']} 审核，当前用户不能取消")
+
+            cursor.execute(
+                "UPDATE voucher_master SET reviewer = NULL, reviewer_account = NULL WHERE voucher_id = ?",
+                (row["voucher_id"],)
+            )
+            log_event(
+                logger,
+                "取消审核完成",
+                db_path=self.db_path,
+                voucher_no=voucher_no,
+                reviewer_account=reviewer_account,
+            )
+
+    def post_voucher(self, voucher_no: str, poster_name: str, poster_account: str):
+        """过账凭证"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            log_event(
+                logger,
+                "开始过账凭证",
+                db_path=self.db_path,
+                voucher_no=voucher_no,
+                poster=poster_name,
+                poster_account=poster_account,
+            )
+            cursor.execute(
+                """
+                SELECT voucher_id, reviewer, poster
+                FROM voucher_master
+                WHERE voucher_no = ?
+                """,
+                (voucher_no,)
+            )
+            row = cursor.fetchone()
+
+            if row is None:
+                raise ValueError("凭证不存在")
+
+            if not row["reviewer"]:
+                raise ValueError("凭证尚未审核，不能过账")
+
+            if row["poster"]:
+                raise ValueError(f"凭证已由 {row['poster']} 过账")
+
+            cursor.execute(
+                """
+                UPDATE voucher_master
+                SET poster = ?, poster_account = ?, posted_time = CURRENT_TIMESTAMP
+                WHERE voucher_id = ?
+                """,
+                (poster_name, poster_account, row["voucher_id"])
+            )
+            log_event(
+                logger,
+                "凭证过账完成",
+                db_path=self.db_path,
+                voucher_no=voucher_no,
+                poster=poster_name,
+                poster_account=poster_account,
+            )
+
+    def cancel_post(self, voucher_no: str, poster_account: str):
+        """取消过账"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            log_event(
+                logger,
+                "开始取消过账",
+                db_path=self.db_path,
+                voucher_no=voucher_no,
+                poster_account=poster_account,
+            )
+            cursor.execute(
+                """
+                SELECT voucher_id, poster, poster_account
+                FROM voucher_master
+                WHERE voucher_no = ?
+                """,
+                (voucher_no,)
+            )
+            row = cursor.fetchone()
+
+            if row is None:
+                raise ValueError("凭证不存在")
+
+            if not row["poster"]:
+                raise ValueError("凭证尚未过账")
+
+            if not row["poster_account"]:
+                raise ValueError("历史数据缺少过账操作账号，不能取消过账")
+
+            if row["poster_account"] != poster_account:
+                raise ValueError(f"该凭证由 {row['poster']} 过账，当前用户不能取消")
+
+            cursor.execute(
+                """
+                UPDATE voucher_master
+                SET poster = NULL, poster_account = NULL, posted_time = NULL
+                WHERE voucher_id = ?
+                """,
+                (row["voucher_id"],)
+            )
+            log_event(
+                logger,
+                "取消过账完成",
+                db_path=self.db_path,
+                voucher_no=voucher_no,
+                poster_account=poster_account,
+            )
     
     def search_vouchers(self, start_date=None, end_date=None, voucher_no=None):
         """查询凭证列表"""
