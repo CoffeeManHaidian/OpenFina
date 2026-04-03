@@ -12,7 +12,7 @@ import json
 from utils.password import PasswdManager
 from utils.path_helper import get_db_path, get_settings_path, get_icon_path
 from utils.logger import get_logger, log_event, install_global_exception_logger
-from main import MyWindow
+from app.main import MyWindow
 
 # 获取日志记录器
 logger = get_logger()
@@ -590,3 +590,4 @@ if __name__ == "__main__":
 
     window.show()
     app.exec()
+

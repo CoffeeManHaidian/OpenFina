@@ -18,7 +18,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QLabel,
     QLineEdit, QMainWindow, QPushButton, QSizePolicy,
     QSpacerItem, QStackedWidget, QVBoxLayout, QWidget)
-import resource_rc
+from ui import resource_rc
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -685,4 +685,5 @@ class Ui_MainWindow(object):
         self.btn_out.setText(QCoreApplication.translate("MainWindow", u"01008 \u6807\u51c6\u51ed\u8bc1\u5f15\u51fa", None))
         self.pushButton.setText(QCoreApplication.translate("MainWindow", u"PushButton", None))
     # retranslateUi
+
 

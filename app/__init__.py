@@ -1,0 +1,1 @@
+"""OpenFina application package."""

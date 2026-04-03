@@ -9,7 +9,7 @@
 ```
 OpenFina/
 ├── ui/login.py           # 程序入口
-├── main.py               # 主窗口
+├── app/main.py           # 主窗口
 ├── models/               # 数据模型
 ├── utils/                # 工具模块
 │   ├── path_helper.py    # 路径处理（新增）
@@ -21,8 +21,9 @@ OpenFina/
 │   ├── users.db          # 用户数据库
 │   ├── settings.json     # 用户配置
 │   └── {公司}_{年份}_vouchers.db  # 凭证数据
-├── build_exe.py          # 打包脚本
-└── PACKAGING.md          # 本文件
+├── scripts/build_exe.py  # 打包脚本
+├── docs/                 # 项目文档
+└── README.md             # 项目说明
 ```
 
 ## 打包前准备
@@ -53,10 +54,10 @@ pip install PySide6 bcrypt numpy pandas
 conda activate Qt
 
 # 使用默认单目录模式打包（推荐，启动快）
-python build_exe.py
+python scripts/build_exe.py
 
 # 或使用单文件模式打包（只有一个exe文件，启动较慢）
-python build_exe.py --single
+python scripts/build_exe.py --single
 ```
 
 ### 方法2：手动打包
@@ -171,7 +172,7 @@ else:
 ```powershell
 # 激活环境并执行完整打包
 conda activate Qt
-python build_full.py
+python scripts/build_full.py
 ```
 
 这将自动执行：
@@ -185,7 +186,7 @@ python build_full.py
 
 ```powershell
 # 只创建安装程序（使用已有的 dist/OpenFina/）
-python build_full.py --skip-pyinstaller
+python scripts/build_full.py --skip-pyinstaller
 ```
 
 ### 4. 手动编译安装脚本
@@ -321,3 +322,5 @@ dist/
 - `settings.json`：首次保存设置时自动创建
 
 无需手动准备数据库文件。
+
+

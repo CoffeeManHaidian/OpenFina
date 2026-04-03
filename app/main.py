@@ -1,89 +1,87 @@
-from PySide6.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget,
-                                QListWidgetItem)
-from PySide6.QtCore import Qt
-from PySide6.QtGui import Qt, QIcon
-from PySide6.QtCore import QSize
+import sys
+from pathlib import Path
 
-from PySide6.QtWidgets import QMessageBox
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 from ui.Ui_mainwindow import Ui_MainWindow
-# from ui.mainwindow import Ui_MainWindow
 from ui.certificate import Certification
 from ui.summary import VoucherSummary
 from utils.logger import get_logger, log_system_info
 
-# 初始化日志记录器
 logger = get_logger()
+
 
 class MyWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, username, company):
         super().__init__()
         self.user_info = {
             "username": username,
-            "company": company
+            "company": company,
         }
 
         self.setupUi(self)
-        # 设置窗口无边框
         self.setWindowFlag(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        # 使能模拟边框按钮功能
         self.redefine_window_border_btn()
-        # 初始化槽函数
         self.init_solt()
 
     def on_maxBtn_clicked(self):
         """最大化窗口"""
-
         if self.isMaximized():
             self.showNormal()
             icon = QIcon()
             icon.addFile(u":/tittle/icons/maximize.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
             self.btn_max.setIcon(icon)
-            self.btn_max.setIconSize(QSize(10,10))
-            # 改变最大化窗口圆角
-            self.widget.setStyleSheet(u"#widget{\n"
-"	background-color: rgb(243, 243, 243);\n"
-"	border-radius: 10px;\n"
-"}")
+            self.btn_max.setIconSize(QSize(10, 10))
+            self.widget.setStyleSheet(
+                u"#widget{\n"
+                "\tbackground-color: rgb(243, 243, 243);\n"
+                "\tborder-radius: 10px;\n"
+                "}"
+            )
         else:
-            self.showMaximized()  
-            # 改变最大化按钮图标
+            self.showMaximized()
             icon = QIcon()
-            icon.addFile(u":/tittle/icons/reduction.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)  
+            icon.addFile(u":/tittle/icons/reduction.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
             self.btn_max.setIcon(icon)
-            self.btn_max.setIconSize(QSize(10,10))
-            # 改变最大化窗口圆角
-            self.widget.setStyleSheet(u"#widget{\n"
-"	background-color: rgb(243, 243, 243);\n"
-"	border-radius: 0px;\n"
-"}")
+            self.btn_max.setIconSize(QSize(10, 10))
+            self.widget.setStyleSheet(
+                u"#widget{\n"
+                "\tbackground-color: rgb(243, 243, 243);\n"
+                "\tborder-radius: 0px;\n"
+                "}"
+            )
 
     def double_clicked_border_bar(self, event):
         """双击顶部标题条,使其在最大化和还原之间切换"""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.on_maxBtn_clicked()      
+            self.on_maxBtn_clicked()
 
     def move_title_bar(self, event):
         """拖动顶部标题条"""
-        self.windowHandle().startSystemMove() 
+        self.windowHandle().startSystemMove()
 
     def redefine_window_border_btn(self):
         """使模拟边框的3个按钮生效(关闭、最小化、最大化、双击标题框)"""
-        self.btn_close.clicked.connect(self.close)  # 关闭按钮
-        self.btn_min.clicked.connect(self.showMinimized)  # 最小化按钮
-        self.btn_max.clicked.connect(self.on_maxBtn_clicked)  # 最大化按钮
-        # 设置可拖动（通过拖动窗口上的横条来达到拖动窗口的效果）
+        self.btn_close.clicked.connect(self.close)
+        self.btn_min.clicked.connect(self.showMinimized)
+        self.btn_max.clicked.connect(self.on_maxBtn_clicked)
         self.TittleBar.mouseDoubleClickEvent = self.double_clicked_border_bar
         self.TittleBar.mouseMoveEvent = self.move_title_bar
-    
+
     def init_solt(self):
         """初始化槽函数"""
-        self.Ladger.clicked.connect(lambda:self.goto_subfunc_page(1))
-        self.Report.clicked.connect(lambda:self.goto_subfunc_page(2))
+        self.Ladger.clicked.connect(lambda: self.goto_subfunc_page(1))
+        self.Report.clicked.connect(lambda: self.goto_subfunc_page(2))
 
-        self.btn_certification.clicked.connect(lambda:self.goto_detailfunc_page(1))
-        self.btn_ledger.clicked.connect(lambda:self.goto_detailfunc_page(2))
+        self.btn_certification.clicked.connect(lambda: self.goto_detailfunc_page(1))
+        self.btn_ledger.clicked.connect(lambda: self.goto_detailfunc_page(2))
 
         self.inputBtn.clicked.connect(self.on_inputBtn_clicked)
         self.queryBtn.clicked.connect(self.on_queryBtn_clicked)
@@ -142,11 +140,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
 
 if __name__ == "__main__":
-    # 记录系统启动信息
     log_system_info(logger)
-    
-    app = QApplication([])
-    mainwindow = MyWindow()
 
+    app = QApplication([])
+    mainwindow = MyWindow("demo", "OpenFina")
     mainwindow.show()
     app.exec()

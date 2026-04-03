@@ -238,7 +238,7 @@ QPushButton:pressed{
                 <string/>
                </property>
                <property name="icon">
-                <iconset resource="../resource.qrc">
+                <iconset resource="resource.qrc">
                  <normaloff>:/tittle/icons/minimize.png</normaloff>:/tittle/icons/minimize.png</iconset>
                </property>
                <property name="iconSize">
@@ -285,7 +285,7 @@ QPushButton:checked{
                 <string/>
                </property>
                <property name="icon">
-                <iconset resource="../resource.qrc">
+                <iconset resource="resource.qrc">
                  <normaloff>:/tittle/icons/maximize.png</normaloff>:/tittle/icons/maximize.png</iconset>
                </property>
                <property name="iconSize">
@@ -329,7 +329,7 @@ QPushButton:pressed{
                 <string/>
                </property>
                <property name="icon">
-                <iconset resource="../resource.qrc">
+                <iconset resource="resource.qrc">
                  <normaloff>:/tittle/icons/close.png</normaloff>:/tittle/icons/close.png</iconset>
                </property>
                <property name="iconSize">
@@ -619,7 +619,7 @@ QPushButton:pressed{
                     <string> 凭证处理</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/folder.png</normaloff>:/tittle/icons/folder.png</iconset>
                    </property>
                    <property name="iconSize">
@@ -664,7 +664,7 @@ QPushButton:pressed{
                     <string> 账簿</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/folder.png</normaloff>:/tittle/icons/folder.png</iconset>
                    </property>
                   </widget>
@@ -703,7 +703,7 @@ QPushButton:pressed{
                     <string> 财务报表</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/folder.png</normaloff>:/tittle/icons/folder.png</iconset>
                    </property>
                   </widget>
@@ -742,7 +742,7 @@ QPushButton:pressed{
                     <string> 现金流量</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/folder.png</normaloff>:/tittle/icons/folder.png</iconset>
                    </property>
                   </widget>
@@ -781,7 +781,7 @@ QPushButton:pressed{
                     <string> 结账</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/folder.png</normaloff>:/tittle/icons/folder.png</iconset>
                    </property>
                   </widget>
@@ -820,7 +820,7 @@ QPushButton:pressed{
                     <string> 往来</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/folder.png</normaloff>:/tittle/icons/folder.png</iconset>
                    </property>
                   </widget>
@@ -981,7 +981,7 @@ QPushButton:pressed{
                     <string>01001 凭证录入</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/excel.png</normaloff>:/tittle/icons/excel.png</iconset>
                    </property>
                   </widget>
@@ -1014,7 +1014,7 @@ QPushButton:pressed{
                     <string>01002 凭证查询</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/excel.png</normaloff>:/tittle/icons/excel.png</iconset>
                    </property>
                   </widget>
@@ -1047,7 +1047,7 @@ QPushButton:pressed{
                     <string>01003 凭证过账</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/excel.png</normaloff>:/tittle/icons/excel.png</iconset>
                    </property>
                   </widget>
@@ -1080,7 +1080,7 @@ QPushButton:pressed{
                     <string>01004 凭证汇总</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/excel.png</normaloff>:/tittle/icons/excel.png</iconset>
                    </property>
                   </widget>
@@ -1113,7 +1113,7 @@ QPushButton:pressed{
                     <string>01005 模式凭证</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/excel.png</normaloff>:/tittle/icons/excel.png</iconset>
                    </property>
                   </widget>
@@ -1146,7 +1146,7 @@ QPushButton:pressed{
                     <string>01006 双敲审核</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/excel.png</normaloff>:/tittle/icons/excel.png</iconset>
                    </property>
                   </widget>
@@ -1179,7 +1179,7 @@ QPushButton:pressed{
                     <string>01007 标准凭证引入</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/excel.png</normaloff>:/tittle/icons/excel.png</iconset>
                    </property>
                   </widget>
@@ -1212,7 +1212,7 @@ QPushButton:pressed{
                     <string>01008 标准凭证引出</string>
                    </property>
                    <property name="icon">
-                    <iconset resource="../resource.qrc">
+                    <iconset resource="resource.qrc">
                      <normaloff>:/tittle/icons/excel.png</normaloff>:/tittle/icons/excel.png</iconset>
                    </property>
                   </widget>
@@ -1294,7 +1294,8 @@ QPushButton:pressed{
   </widget>
  </widget>
  <resources>
-  <include location="../resource.qrc"/>
+  <include location="resource.qrc"/>
  </resources>
  <connections/>
 </ui>
+

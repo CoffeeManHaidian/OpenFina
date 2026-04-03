@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openfina"
+version = "1.0.0"
+description = "OpenFina desktop financial system built with PySide6."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+authors = [
+  { name = "OpenFina Team" }
+]
+license = { text = "Proprietary" }
+keywords = ["finance", "accounting", "pyside6", "desktop", "windows"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Win32 (MS Windows)",
+  "Intended Audience :: End Users/Desktop",
+  "License :: Other/Proprietary License",
+  "Operating System :: Microsoft :: Windows :: Windows 10",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Office/Business :: Financial :: Accounting",
+]
+dependencies = [
+  "PySide6>=6.8,<7",
+  "bcrypt>=4,<5",
+  "numpy>=2,<3",
+  "pandas>=2.2,<3",
+]
+
+[project.optional-dependencies]
+packaging = [
+  "pyinstaller>=6,<7",
+]
+
+[project.urls]
+Homepage = "https://github.com/CoffeeManHaidian/OpenFina"
+Repository = "https://github.com/CoffeeManHaidian/OpenFina"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["app", "models", "ui", "utils"]
+
+[tool.setuptools.package-data]
+ui = ["*.qrc", "*.ui"]
