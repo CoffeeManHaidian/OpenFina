@@ -8,4 +8,5 @@ data
 _internal
 build
 dist
+releases
 *.spec

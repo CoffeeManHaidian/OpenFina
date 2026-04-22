@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from ui.mainwindow import Ui_MainWindow
 from ui.certificate import Certification
 from ui.summary import VoucherSummary
+from ui.voucher_list_dialog import VoucherListDialog
 from utils.logger import get_logger, log_system_info
 from utils.theme import chrome_main_window_style
 
@@ -115,14 +116,14 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             QMessageBox.critical(self, "错误", f"打开凭证录入窗口失败:\n{exc}")
 
     def on_queryBtn_clicked(self):
-        if hasattr(self, "queryWindow") and self.queryWindow.isVisible():
-            self.queryWindow.raise_()
-            self.queryWindow.activateWindow()
+        if hasattr(self, "queryListWindow") and self.queryListWindow.isVisible():
+            self.queryListWindow.raise_()
+            self.queryListWindow.activateWindow()
             return
 
         try:
-            self.queryWindow = Certification(self.user_info, 2)
-            self.queryWindow.show()
+            self.queryListWindow = VoucherListDialog(self.user_info, self)
+            self.queryListWindow.show()
         except Exception as exc:
             logger.exception("打开凭证查询窗口失败")
             QMessageBox.critical(self, "错误", f"打开凭证查询窗口失败:\n{exc}")
@@ -185,3 +186,5 @@ if __name__ == "__main__":
     )
     mainwindow.show()
     app.exec()
+
+

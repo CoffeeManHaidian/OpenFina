@@ -28,8 +28,16 @@ python -m pip install .[packaging]
 开发环境下直接运行：
 
 ```powershell
-python ui/login.py
+python app/bootstrap.py
 ```
+
+`app/bootstrap.py` 是正式启动入口，负责应用初始化、自动登录恢复和登录页/主界面切换。
+
+## 当前版本
+
+当前发布版本：`v2.0.0`
+
+Release 说明见 [docs/RELEASE_v2.0.0.md](D:/QtProcess/OpenFina/docs/RELEASE_v2.0.0.md)。
 
 ## 项目目录
 

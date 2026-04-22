@@ -25,7 +25,7 @@ from PySide6.QtGui import QColor, QFont, QKeySequence, QShortcut
 from models.data import Voucher, VoucherDetail
 from models.voucher import VoucherManager
 from ui.cal import DatePickerDialog
-from ui.clickableTabel import ClickableLabel
+from ui.clickableLabel import ClickableLabel
 from ui.subject import SubjectWindow
 from utils.logger import get_logger, log_event
 from utils.theme import material_widget_style
@@ -251,7 +251,7 @@ class Certification(QWidget):
 
         self.btnCancel = QPushButton(self.topWidget)
         self.btnCancel.setObjectName("取消")
-        self.btnCancel.setText("关闭" if self.func in (3, 4) else "取消")
+        self.btnCancel.setText("关闭" if self.func in (2, 3, 4) else "取消")
         self.btnCancel.setMinimumSize(QSize(40, 40))
         self.btnCancel.setStyleSheet(
             """
@@ -312,10 +312,14 @@ class Certification(QWidget):
         mainLayout.addWidget(self.bottomWidget)
         self.setLayout(mainLayout)
 
-        if self.func in (3, 4):
+        if self.func in (2, 3, 4):
             self.typeCombo.setEnabled(False)
             self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-            self.btnSave.setEnabled(False)
+            if self.func in (3, 4):
+                self.btnSave.setEnabled(False)
+            else:
+                self.btnSave.hide()
+                self.numberCombo.setEnabled(False)
 
         self.preparerEdit.setReadOnly(self.func != 1)
         self.reviewEdit.setReadOnly(self.func not in (1, 4))
@@ -323,8 +327,9 @@ class Certification(QWidget):
 
     def init_slot(self):
         """绑定信号与槽"""
-        self.dateBtnLabel.clicked.connect(self.show_date_picker)
-        if self.func not in (3, 4):
+        if self.func != 2:
+            self.dateBtnLabel.clicked.connect(self.show_date_picker)
+        if self.func not in (2, 3, 4):
             self.datetimeBtnLabel.clicked.connect(self.show_datetime_picker)
         self.table.itemChanged.connect(self.on_itemChanged)
 
@@ -560,6 +565,9 @@ class Certification(QWidget):
         self.table.setItem(self.table.currentRow(), 1, QTableWidgetItem(self.subjectStr))
 
     def on_btnSave_clicked(self):
+        if self.func == 2:
+            self.close()
+            return
         if self.func == 3:
             self.on_post_clicked()
             return
@@ -796,6 +804,24 @@ class Certification(QWidget):
             reviewer=voucher.reviewer or "",
             poster=voucher.poster or "",
         )
+
+    def load_voucher_by_number(self, voucher_no):
+        """根据完整凭证号加载凭证详情"""
+        voucher = self.voucherManager.search_voucher(voucher_no)
+        if voucher is None:
+            raise ValueError(f"凭证 {voucher_no} 不存在")
+
+        voucher_date = QDate.fromString(voucher.voucher_date, "yyyy-MM-dd")
+        if voucher_date.isValid():
+            self.voucher_date = voucher_date
+            self.update_date_label(self.voucher_date, self.dateBtnLabel)
+            self.refresh_number_combo()
+
+        voucher_suffix = voucher_no.split("-")[-1]
+        if self.numberCombo.findText(voucher_suffix) == -1:
+            self.numberCombo.addItem(voucher_suffix)
+        self.numberCombo.setCurrentText(voucher_suffix)
+        self.populate_voucher(voucher)
 
 
 if __name__ == "__main__":

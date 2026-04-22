@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openfina"
-version = "1.0.0"
-description = "OpenFina desktop financial system built with PySide6."
+version = "2.0.0"
+description = "OpenFina v2.0 desktop financial system built with PySide6."
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
 authors = [

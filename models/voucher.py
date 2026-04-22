@@ -169,6 +169,15 @@ class VoucherManager:
             log_event(logger, "凭证写入完成", voucher_id=voucher_id, voucher_no=voucher.voucher_no, detail_count=len(voucher.details))
             
             return voucher_id
+
+    def _normalize_date_value(self, value):
+        if value is None:
+            return None
+        if hasattr(value, "toString"):
+            return value.toString("yyyy-MM-dd")
+        if hasattr(value, "isoformat"):
+            return value.isoformat()
+        return str(value)
     
     def search_voucher(self, number: int) -> Optional[Voucher]:
         """获取单个凭证"""
@@ -415,26 +424,72 @@ class VoucherManager:
                 poster_account=poster_account,
             )
     
-    def search_vouchers(self, start_date=None, end_date=None, voucher_no=None):
+    def search_vouchers(self, start_date=None, end_date=None, voucher_no=None, summary_keyword=None, account_keyword=None):
         """查询凭证列表"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            log_event(logger, "查询凭证列表", db_path=self.db_path, start_date=start_date, end_date=end_date, voucher_no=voucher_no)
-            
-            query = "SELECT * FROM voucher_master WHERE 1=1"
+            log_event(
+                logger,
+                "查询凭证列表",
+                db_path=self.db_path,
+                start_date=start_date,
+                end_date=end_date,
+                voucher_no=voucher_no,
+                summary_keyword=summary_keyword,
+                account_keyword=account_keyword,
+            )
+
+            query = """
+                SELECT
+                    vm.*,
+                    (
+                        SELECT vd.summary
+                        FROM voucher_details vd
+                        WHERE vd.voucher_id = vm.voucher_id
+                        ORDER BY vd.line_no
+                        LIMIT 1
+                    ) AS first_summary
+                FROM voucher_master vm
+                WHERE 1=1
+            """
             params = []
             
             if start_date:
-                query += " AND voucher_date >= ?"
-                params.append(start_date.isoformat())
+                query += " AND vm.voucher_date >= ?"
+                params.append(self._normalize_date_value(start_date))
             if end_date:
-                query += " AND voucher_date <= ?"
-                params.append(end_date.isoformat())
+                query += " AND vm.voucher_date <= ?"
+                params.append(self._normalize_date_value(end_date))
             if voucher_no:
-                query += " AND voucher_no LIKE ?"
+                query += " AND vm.voucher_no LIKE ?"
                 params.append(f"%{voucher_no}%")
-            
-            query += " ORDER BY voucher_date, voucher_no"
+            if summary_keyword:
+                query += """
+                    AND EXISTS (
+                        SELECT 1
+                        FROM voucher_details vd
+                        WHERE vd.voucher_id = vm.voucher_id
+                        AND vd.summary LIKE ?
+                    )
+                """
+                params.append(f"%{summary_keyword}%")
+            if account_keyword:
+                account_parts = str(account_keyword).split(" ", 1)
+                account_code = account_parts[0].strip()
+                query += """
+                    AND EXISTS (
+                        SELECT 1
+                        FROM voucher_details vd
+                        WHERE vd.voucher_id = vm.voucher_id
+                        AND (
+                            vd.account_code LIKE ?
+                            OR vd.account_name LIKE ?
+                        )
+                    )
+                """
+                params.extend((f"%{account_code}%", f"%{account_keyword.strip()}%"))
+
+            query += " ORDER BY vm.voucher_date, vm.voucher_no"
             cursor.execute(query, params)
             
             rows = cursor.fetchall()
