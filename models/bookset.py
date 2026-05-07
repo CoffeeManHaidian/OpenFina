@@ -107,7 +107,7 @@ class UserBooksetManager:
         user_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
         }
-        expected_user_columns = {"id", "username", "password_hash", "status", "created_at", "role", "must_change_password"}
+        expected_user_columns = {"id", "username", "password_hash", "status", "created_at"}
         if not expected_user_columns.issubset(user_columns):
             return True
 
