@@ -142,7 +142,7 @@ class UserBooksetManager:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT id, username, password_hash, status FROM users WHERE username = ?",
+                "SELECT id, username, password_hash, status, role, must_change_password FROM users WHERE username = ?",
                 (username,),
             )
             row = cursor.fetchone()
@@ -152,17 +152,28 @@ class UserBooksetManager:
                 raise ValueError("用户已停用")
             if not self.verify_password(password, row["password_hash"]):
                 raise ValueError("用户名或密码错误")
-            return {"user_id": row["id"], "username": row["username"]}
+            return {
+                "user_id": row["id"],
+                "username": row["username"],
+                "role": row["role"],
+                "must_change_password": bool(row["must_change_password"]),
+            }
 
     def get_user_by_username(self, username):
         with self.get_connection() as conn:
             row = conn.execute(
-                "SELECT id, username, status FROM users WHERE username = ?",
+                "SELECT id, username, status, role, must_change_password FROM users WHERE username = ?",
                 (username,),
             ).fetchone()
         if row is None:
             return None
-        return {"user_id": row["id"], "username": row["username"], "status": row["status"]}
+        return {
+            "user_id": row["id"],
+            "username": row["username"],
+            "status": row["status"],
+            "role": row["role"],
+            "must_change_password": bool(row["must_change_password"]),
+        }
 
     def create_user_with_bookset(self, username, password, enterprise_name, fiscal_year, enterprise_code=""):
         user_id = self.register_user(username, password)
@@ -317,9 +328,18 @@ class UserBooksetManager:
             raise ValueError("当前用户未绑定任何账套")
 
         self.mark_bookset_used(user_id, bookset["bookset_id"])
+
+        # Read role from users table
+        with self.get_connection() as conn:
+            user_row = conn.execute(
+                "SELECT role, must_change_password FROM users WHERE id = ?", (user_id,)
+            ).fetchone()
+
         return {
             "username": username,
             "user_id": user_id,
+            "role": user_row["role"] if user_row else "manager",
+            "must_change_password": bool(user_row["must_change_password"]) if user_row else False,
             "bookset_id": bookset["bookset_id"],
             "enterprise_name": bookset["enterprise_name"],
             "company": bookset["enterprise_name"],
