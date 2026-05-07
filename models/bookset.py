@@ -51,6 +51,8 @@ class UserBooksetManager:
                     username TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL,
                     status TEXT NOT NULL DEFAULT 'active',
+                    role TEXT NOT NULL DEFAULT 'manager',
+                    must_change_password INTEGER NOT NULL DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """
@@ -82,6 +84,17 @@ class UserBooksetManager:
                 """
             )
 
+            # Migrate existing users table — add role column if missing
+            user_columns = {
+                row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
+            }
+            if "role" not in user_columns:
+                conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'manager'")
+                log_event(logger, "迁移用户表：添加 role 列")
+            if "must_change_password" not in user_columns:
+                conn.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
+                log_event(logger, "迁移用户表：添加 must_change_password 列")
+
     def _needs_reset(self, conn):
         tables = {
             row["name"] for row in conn.execute(
@@ -94,7 +107,7 @@ class UserBooksetManager:
         user_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
         }
-        expected_user_columns = {"id", "username", "password_hash", "status", "created_at"}
+        expected_user_columns = {"id", "username", "password_hash", "status", "created_at", "role", "must_change_password"}
         if not expected_user_columns.issubset(user_columns):
             return True
 
