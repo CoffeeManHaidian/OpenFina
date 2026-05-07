@@ -351,6 +351,81 @@ class UserBooksetManager:
     def get_user_bookset_count(self, user_id):
         return len(self.list_user_booksets(user_id))
 
+    def has_any_admin(self):
+        """Check if any admin user exists."""
+        with self.get_connection() as conn:
+            row = conn.execute(
+                "SELECT COUNT(1) AS cnt FROM users WHERE role = 'admin' AND status = 'active'"
+            ).fetchone()
+            return row["cnt"] > 0
+
+    def list_all_users(self):
+        """List all users with their roles (admin only)."""
+        with self.get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT u.id, u.username, u.status, u.role, u.must_change_password, u.created_at,
+                       COUNT(ub.id) AS bookset_count
+                FROM users u
+                LEFT JOIN user_booksets ub ON ub.user_id = u.id
+                GROUP BY u.id
+                ORDER BY u.role DESC, u.created_at DESC
+                """
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def update_user_status(self, user_id, status):
+        """Enable or disable a user account."""
+        if status not in ("active", "disabled"):
+            raise ValueError("无效的用户状态")
+        with self.get_connection() as conn:
+            conn.execute(
+                "UPDATE users SET status = ? WHERE id = ?", (status, user_id)
+            )
+        log_event(logger, "更新用户状态", user_id=user_id, status=status)
+
+    def update_user_role(self, user_id, role):
+        """Change a user's role."""
+        if role not in ("admin", "manager"):
+            raise ValueError("无效的角色")
+        with self.get_connection() as conn:
+            if role == "manager":
+                admin_count = conn.execute(
+                    "SELECT COUNT(1) FROM users WHERE role = 'admin' AND status = 'active' AND id != ?",
+                    (user_id,),
+                ).fetchone()[0]
+                if admin_count == 0:
+                    raise ValueError("不能移除最后一个系统管理员")
+            conn.execute(
+                "UPDATE users SET role = ? WHERE id = ?", (role, user_id)
+            )
+        log_event(logger, "更新用户角色", user_id=user_id, role=role)
+
+    def reset_user_password(self, user_id, new_password):
+        """Reset a user's password and force change on next login."""
+        with self.get_connection() as conn:
+            conn.execute(
+                "UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?",
+                (self.hash_password(new_password), user_id),
+            )
+        log_event(logger, "重置用户密码", user_id=user_id)
+
+    def change_own_password(self, user_id, old_password, new_password):
+        """Change own password with old password verification."""
+        with self.get_connection() as conn:
+            row = conn.execute(
+                "SELECT password_hash FROM users WHERE id = ?", (user_id,)
+            ).fetchone()
+            if row is None:
+                raise ValueError("用户不存在")
+            if not self.verify_password(old_password, row["password_hash"]):
+                raise ValueError("原密码错误")
+            conn.execute(
+                "UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?",
+                (self.hash_password(new_password), user_id),
+            )
+        log_event(logger, "用户修改密码", user_id=user_id)
+
     def _row_to_bookset_dict(self, row):
         db_filename = row["db_filename"]
         return {
