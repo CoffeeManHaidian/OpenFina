@@ -73,17 +73,15 @@ def test_update_user_status_enables_and_disables():
         assert user["status"] == "active"
 
 
-def test_update_user_role_changes_role():
+def test_update_user_role_upgrades_to_admin():
     with tempfile.TemporaryDirectory() as tmpdir:
         db_path = os.path.join(tmpdir, "test.db")
         mgr = UserBooksetManager(db_path)
         user_id = mgr.register_user("testuser", "pass")
+        # Default role is manager, upgrade to admin
         mgr.update_user_role(user_id, "admin")
         user = mgr.get_user_by_username("testuser")
         assert user["role"] == "admin"
-        mgr.update_user_role(user_id, "manager")
-        user = mgr.get_user_by_username("testuser")
-        assert user["role"] == "manager"
 
 
 def test_update_user_role_refuses_removing_last_admin():
@@ -193,7 +191,7 @@ if __name__ == "__main__":
         test_list_all_users_returns_list,
         test_list_all_users_includes_role_and_status,
         test_update_user_status_enables_and_disables,
-        test_update_user_role_changes_role,
+        test_update_user_role_upgrades_to_admin,
         test_update_user_role_refuses_removing_last_admin,
         test_update_user_role_allows_demoting_if_another_admin_exists,
         test_reset_user_password_forces_change_flag,
