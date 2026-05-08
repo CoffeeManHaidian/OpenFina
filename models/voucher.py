@@ -33,6 +33,16 @@ class VoucherManager:
         finally:
             conn.close()
     
+    def _require_role(self, role, operation):
+        current_role = getattr(self, "_current_user_role", None)
+        if current_role is None:
+            return
+        if current_role != role:
+            raise PermissionError(f"当前用户角色 '{current_role}' 没有权限执行 '{operation}' 操作")
+
+    def set_current_user_role(self, role):
+        self._current_user_role = role
+
     def init_database(self):
         with self.get_connection() as conn:
             log_event(logger, "初始化凭证数据库结构", db_path=self.db_path)
@@ -90,6 +100,7 @@ class VoucherManager:
     
     def save_voucher(self, voucher: Voucher) -> int:
         """保存凭证（包含事务）"""
+        self._require_role("manager", "凭证录入")
         with self.get_connection() as conn:
             cursor = conn.cursor()
             log_event(logger, "开始写入凭证", db_path=self.db_path, voucher_no=voucher.voucher_no, detail_count=len(voucher.details))
@@ -237,6 +248,7 @@ class VoucherManager:
 
     def review_voucher(self, voucher_no: str, reviewer_name: str, reviewer_account: str):
         """审核凭证"""
+        self._require_role("manager", "凭证审核")
         with self.get_connection() as conn:
             cursor = conn.cursor()
             log_event(
@@ -281,6 +293,7 @@ class VoucherManager:
 
     def cancel_review(self, voucher_no: str, reviewer_account: str):
         """取消审核"""
+        self._require_role("manager", "取消审核")
         with self.get_connection() as conn:
             cursor = conn.cursor()
             log_event(
@@ -329,6 +342,7 @@ class VoucherManager:
 
     def post_voucher(self, voucher_no: str, poster_name: str, poster_account: str):
         """过账凭证"""
+        self._require_role("manager", "凭证过账")
         with self.get_connection() as conn:
             cursor = conn.cursor()
             log_event(
@@ -377,6 +391,7 @@ class VoucherManager:
 
     def cancel_post(self, voucher_no: str, poster_account: str):
         """取消过账"""
+        self._require_role("manager", "取消过账")
         with self.get_connection() as conn:
             cursor = conn.cursor()
             log_event(
@@ -423,7 +438,40 @@ class VoucherManager:
                 voucher_no=voucher_no,
                 poster_account=poster_account,
             )
-    
+
+    def batch_cancel_post(self, start_date, end_date):
+        """批量取消过账（仅限管理员）"""
+        self._require_role("admin", "批量取消过账")
+        with self.get_connection() as conn:
+            result = conn.execute(
+                """
+                UPDATE voucher_master
+                SET poster = NULL, poster_account = NULL, posted_time = NULL
+                WHERE voucher_date >= ? AND voucher_date <= ? AND poster IS NOT NULL
+                """,
+                (self._normalize_date_value(start_date), self._normalize_date_value(end_date)),
+            )
+            count = result.rowcount
+        log_event(logger, "批量取消过账完成", count=count, start_date=start_date, end_date=end_date)
+        return count
+
+    def batch_cancel_review(self, start_date, end_date):
+        """批量取消审核（仅限管理员）"""
+        self._require_role("admin", "批量取消审核")
+        with self.get_connection() as conn:
+            result = conn.execute(
+                """
+                UPDATE voucher_master
+                SET reviewer = NULL, reviewer_account = NULL
+                WHERE voucher_date >= ? AND voucher_date <= ?
+                  AND reviewer IS NOT NULL AND poster IS NULL
+                """,
+                (self._normalize_date_value(start_date), self._normalize_date_value(end_date)),
+            )
+            count = result.rowcount
+        log_event(logger, "批量取消审核完成", count=count, start_date=start_date, end_date=end_date)
+        return count
+
     def search_vouchers(self, start_date=None, end_date=None, voucher_no=None, summary_keyword=None, account_keyword=None):
         """查询凭证列表"""
         with self.get_connection() as conn:

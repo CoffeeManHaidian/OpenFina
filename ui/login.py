@@ -226,6 +226,11 @@ class LoginWidget(QWidget):
 
         try:
             user = self.userManager.authenticate_user(username, password)
+            if user.get("must_change_password"):
+                from ui.password_change_dialog import PasswordChangeDialog
+                dlg = PasswordChangeDialog(self.userManager, user["user_id"], is_force_change=True, parent=self)
+                if dlg.exec() != QDialog.DialogCode.Accepted:
+                    return
             user_context = self.build_user_context(user["user_id"], user["username"])
             self.save_settings(user_context)
             self.switch_2_main(user_context)
@@ -401,6 +406,12 @@ class AutoWidget(QWidget):
         self.cancelBtn.clicked.connect(self.on_cancelBtn_clicked)
 
     def on_confirmBtn_clicked(self):
+        if self.user_context.get("must_change_password"):
+            from ui.password_change_dialog import PasswordChangeDialog
+            dlg = PasswordChangeDialog(self.userManager, self.user_context["user_id"], is_force_change=True, parent=self)
+            if dlg.exec() != QDialog.DialogCode.Accepted:
+                self.on_cancelBtn_clicked()
+                return
         log_event(
             logger,
             "确认自动登录",
