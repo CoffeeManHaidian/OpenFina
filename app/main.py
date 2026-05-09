@@ -11,7 +11,6 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox, QPushButto
 
 from ui.mainwindow import Ui_MainWindow
 from ui.certificate import Certification
-from ui.login import clear_settings
 from ui.summary import VoucherSummary
 from ui.voucher_list_dialog import VoucherListDialog
 from utils.logger import get_logger, log_system_info
@@ -222,6 +221,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
+        from ui.login import clear_settings
         clear_settings()
         from ui.login import LoginWidget
         self.loginWidget = LoginWidget()
