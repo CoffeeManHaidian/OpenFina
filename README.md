@@ -35,9 +35,9 @@ python app/bootstrap.py
 
 ## 当前版本
 
-当前发布版本：`v2.0.0`
+当前发布版本：`v2.1.0`
 
-Release 说明见 [docs/RELEASE_v2.0.0.md](D:/QtProcess/OpenFina/docs/RELEASE_v2.0.0.md)。
+Release 说明见 [docs/RELEASE_v2.1.0.md](docs/RELEASE_v2.1.0.md)。
 
 ## 项目目录
 
