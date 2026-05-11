@@ -55,8 +55,6 @@ class LoginWidget(QWidget):
         leftLayout.setContentsMargins(40, 48, 40, 48)
         leftLayout.setSpacing(18)
 
-        self.versionBadge = QLabel("Release v2.0")
-        self.versionBadge.setObjectName("versionBadge")
         self.brandTitle = QLabel("OpenFina")
         self.brandTitle.setObjectName("brandTitle")
         self.brandSubtitle = QLabel("新的账套数据库架构已经就位。\n登录后直接进入当前企业年度的专属工作台。")
@@ -66,8 +64,6 @@ class LoginWidget(QWidget):
         self.heroMeta.setObjectName("brandSubtitle")
         self.heroMeta.setWordWrap(True)
 
-        leftLayout.addWidget(self.versionBadge, 0, Qt.AlignmentFlag.AlignLeft)
-        leftLayout.addSpacerItem(QSpacerItem(20, 24, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
         leftLayout.addWidget(self.brandTitle)
         leftLayout.addWidget(self.brandSubtitle)
         leftLayout.addWidget(self.heroMeta)

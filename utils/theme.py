@@ -130,13 +130,12 @@ def login_widget_style():
         font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
     }}
     #leftWidget {{
-        background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-            stop:0 #e8f0fe, stop:0.55 #d2e3fc, stop:1 #f8fbff);
+        background: transparent;
         border-top-left-radius: 28px;
         border-bottom-left-radius: 28px;
     }}
     #rightWidget {{
-        background-color: {SURFACE};
+        background-color: transparent;
         border-top-right-radius: 28px;
         border-bottom-right-radius: 28px;
     }}
@@ -162,15 +161,8 @@ def login_widget_style():
         color: {TEXT_SUBTLE};
         line-height: 1.4;
     }}
-    #versionBadge {{
-        color: {GOOGLE_BLUE};
-        background-color: rgba(26, 115, 232, 0.12);
-        border-radius: 14px;
-        padding: 6px 12px;
-        font-weight: 600;
-    }}
     #formCard {{
-        background-color: {SURFACE};
+        background-color: transparent;
         border: 1px solid {OUTLINE};
         border-radius: 24px;
     }}
@@ -181,7 +173,7 @@ def login_widget_style():
         letter-spacing: 0.2px;
     }}
     QLineEdit {{
-        background-color: {SURFACE};
+        background-color: transparent;
         border: 1px solid {OUTLINE};
         border-radius: 12px;
         padding: 12px 14px;
@@ -189,7 +181,6 @@ def login_widget_style():
     }}
     QLineEdit:focus {{
         border-color: {GOOGLE_BLUE};
-        background-color: #fcfdff;
     }}
     QPushButton {{
         border-radius: 12px;
@@ -197,7 +188,7 @@ def login_widget_style():
         font-size: 14px;
         font-weight: 600;
         border: 1px solid {OUTLINE};
-        background-color: {SURFACE};
+        background-color: transparent;
         color: {TEXT};
     }}
     QPushButton#loginBtn, QPushButton#confirmBtn {{
