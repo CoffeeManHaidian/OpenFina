@@ -280,21 +280,21 @@ def chrome_main_window_style():
         font-weight: 700;
         padding: 0 0 8px 0;
     }}
-    #leftBar QPushButton, #ladgerWidget QPushButton, #detCertificate QPushButton, #quickActions QPushButton, #detLadger QPushButton {{
+    #leftBar QPushButton, #ladgerWidget QPushButton, #detCertificate QPushButton, #quickActions QPushButton, #detLadger QPushButton, #detReport QPushButton {{
         background-color: transparent;
-        border: 1px solid transparent;
+        border: none;
         border-radius: 12px;
         color: {TEXT};
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 500;
         text-align: left;
         padding: 11px 14px;
     }}
-    #leftBar QPushButton:hover, #ladgerWidget QPushButton:hover, #detCertificate QPushButton:hover, #quickActions QPushButton:hover, #detLadger QPushButton:hover {{
+    #leftBar QPushButton:hover, #ladgerWidget QPushButton:hover, #detCertificate QPushButton:hover, #quickActions QPushButton:hover, #detLadger QPushButton:hover, #detReport QPushButton:hover {{
         background-color: #e8f0fe;
         color: {GOOGLE_BLUE};
     }}
-    #leftBar QPushButton:pressed, #ladgerWidget QPushButton:pressed, #detCertificate QPushButton:pressed {{
+    #leftBar QPushButton:pressed, #ladgerWidget QPushButton:pressed, #detCertificate QPushButton:pressed, #detLadger QPushButton:pressed, #detReport QPushButton:pressed {{
         background-color: #d2e3fc;
     }}
     #wgt_SubFunc, #wgt_DetailFunc, #subHome, #ladgerWidget, #reportWidget, #detailHome, #detCertificate, #detLadger {{

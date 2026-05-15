@@ -645,3 +645,83 @@ class VoucherManager:
 
         log_event(logger, "科目汇总完成", db_path=self.db_path, start_date=start_date.toString("yyyy-MM-dd"), end_date=end_date.toString("yyyy-MM-dd"), result_count=len(result))
         return result
+
+    def get_general_ledger(self, start_date, end_date, subject_code_from="", subject_code_to="", subject_level=0, include_unposted=False):
+        """获取总分类账数据。只统计已过账凭证（除非 include_unposted=True）。
+
+        subject_level: 0=全部, 1=一级科目, 2=二级科目, 3=三级科目
+        返回每个科目的期初余额、本期发生额、期末余额。
+        """
+        poster_filter = "1=1" if include_unposted else "vm.poster IS NOT NULL"
+
+        level_filter = ""
+        if subject_level > 0:
+            level_filter = f" AND level = {int(subject_level)}"
+
+        with self.get_connection() as conn:
+            subject_rows = conn.execute(
+                f"SELECT subject_code, subject_name, balance_direction, level FROM subjects WHERE enabled = 1{level_filter} ORDER BY subject_code"
+            ).fetchall()
+
+            begin_rows = conn.execute(
+                f"""SELECT vd.account_code,
+                       SUM(vd.debit_amount) AS total_debit,
+                       SUM(vd.credit_amount) AS total_credit
+                FROM voucher_details vd
+                JOIN voucher_master vm ON vd.voucher_id = vm.voucher_id
+                WHERE {poster_filter} AND vm.voucher_date < ?
+                GROUP BY vd.account_code""",
+                (start_date,)
+            ).fetchall()
+
+            current_rows = conn.execute(
+                f"""SELECT vd.account_code,
+                       SUM(vd.debit_amount) AS total_debit,
+                       SUM(vd.credit_amount) AS total_credit
+                FROM voucher_details vd
+                JOIN voucher_master vm ON vd.voucher_id = vm.voucher_id
+                WHERE {poster_filter} AND vm.voucher_date >= ? AND vm.voucher_date <= ?
+                GROUP BY vd.account_code""",
+                (start_date, end_date)
+            ).fetchall()
+
+        begin_map = {r["account_code"]: r for r in begin_rows}
+        current_map = {r["account_code"]: r for r in current_rows}
+
+        result = []
+        for s in subject_rows:
+            code = s["subject_code"]
+            if subject_code_from and code < subject_code_from:
+                continue
+            if subject_code_to and code > subject_code_to:
+                continue
+
+            b = begin_map.get(code)
+            begin_debit = float(b["total_debit"]) if b else 0.0
+            begin_credit = float(b["total_credit"]) if b else 0.0
+
+            c = current_map.get(code)
+            current_debit = float(c["total_debit"]) if c else 0.0
+            current_credit = float(c["total_credit"]) if c else 0.0
+
+            net = begin_debit - begin_credit + current_debit - current_credit
+            if net >= 0:
+                end_debit, end_credit = net, 0.0
+            else:
+                end_debit, end_credit = 0.0, -net
+
+            result.append({
+                "account_code": code,
+                "account_name": s["subject_name"],
+                "balance_direction": s["balance_direction"] or "",
+                "level": s["level"],
+                "begin_debit": begin_debit,
+                "begin_credit": begin_credit,
+                "current_debit": current_debit,
+                "current_credit": current_credit,
+                "end_debit": end_debit,
+                "end_credit": end_credit,
+            })
+
+        log_event(logger, "总分类账查询完成", start_date=start_date, end_date=end_date, subject_count=len(result))
+        return result

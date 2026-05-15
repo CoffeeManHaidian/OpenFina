@@ -97,12 +97,15 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
         self.btn_certification.clicked.connect(lambda: self.goto_detailfunc_page(1))
         self.btn_ledger.clicked.connect(lambda: self.goto_detailfunc_page(2))
+        self.btn_report.clicked.connect(lambda: self.goto_detailfunc_page(3))
 
         self.inputBtn.clicked.connect(self.on_inputBtn_clicked)
         self.queryBtn.clicked.connect(self.on_queryBtn_clicked)
         self.postBtn.clicked.connect(self.on_postBtn_clicked)
         self.summaryBtn.clicked.connect(self.on_summaryBtn_clicked)
         self.btn_review.clicked.connect(self.on_reviewBtn_clicked)
+
+        self.btn_general_ledger.clicked.connect(self.on_general_ledger_clicked)
 
     def apply_role_visibility(self):
         role = self.user_info.get("role", "manager")
@@ -213,6 +216,20 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         except Exception as exc:
             logger.exception("打开双敲审核窗口失败")
             QMessageBox.critical(self, "错误", f"打开双敲审核窗口失败:\n{exc}")
+
+    def on_general_ledger_clicked(self):
+        if hasattr(self, "generalLedgerWindow") and self.generalLedgerWindow.isVisible():
+            self.generalLedgerWindow.raise_()
+            self.generalLedgerWindow.activateWindow()
+            return
+
+        try:
+            from ui.general_ledger import GeneralLedgerView
+            self.generalLedgerWindow = GeneralLedgerView(self.user_info)
+            self.generalLedgerWindow.show()
+        except Exception as exc:
+            logger.exception("打开总分类账窗口失败")
+            QMessageBox.critical(self, "错误", f"打开总分类账窗口失败:\n{exc}")
 
     def on_switch_user_clicked(self):
         reply = QMessageBox.question(

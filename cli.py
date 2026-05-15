@@ -275,6 +275,17 @@ def _add_voucher_commands(subparsers):
     p.add_argument("voucher_no", type=int, help="凭证号")
     p.set_defaults(func=_cmd_voucher_get)
 
+    # general-ledger
+    p = v_sub.add_parser("general-ledger", help="总分类账")
+    p.add_argument("--db", dest="bookset_db", required=True, help="账套数据库路径")
+    p.add_argument("--start", required=True, help="开始日期 (YYYY-MM-DD)")
+    p.add_argument("--end", required=True, help="结束日期 (YYYY-MM-DD)")
+    p.add_argument("--subject-from", default="", help="起始科目编码")
+    p.add_argument("--subject-to", default="", help="结束科目编码")
+    p.add_argument("--level", type=int, default=0, choices=[0, 1, 2, 3], help="科目级别 (0=全部)")
+    p.add_argument("--include-unposted", action="store_true", help="包含未过账凭证")
+    p.set_defaults(func=_cmd_voucher_general_ledger)
+
     # summary
     p = v_sub.add_parser("summary", help="按科目汇总凭证")
     p.add_argument("--db", dest="bookset_db", required=True, help="账套数据库路径")
@@ -366,6 +377,48 @@ def _cmd_voucher_get(args):
     print("-" * 90)
     for d in voucher.details:
         print(f"{d.line_no:<4}  {d.account_code:<16}  {d.account_name:<20}  {d.debit_amount:>12.2f}  {d.credit_amount:>12.2f}  {d.summary or ''}")
+
+
+def _cmd_voucher_general_ledger(args):
+    mgr = _get_voucher_manager(args.bookset_db)
+    rows = mgr.get_general_ledger(
+        args.start, args.end,
+        subject_code_from=args.subject_from,
+        subject_code_to=args.subject_to,
+        subject_level=args.level,
+        include_unposted=args.include_unposted,
+    )
+    if not rows:
+        print("(无数据)")
+        return
+    result = [{
+        "account_code": r["account_code"],
+        "account_name": r["account_name"],
+        "begin_debit": r["begin_debit"],
+        "begin_credit": r["begin_credit"],
+        "current_debit": r["current_debit"],
+        "current_credit": r["current_credit"],
+        "end_debit": r["end_debit"],
+        "end_credit": r["end_credit"],
+    } for r in rows]
+    _output(result, {
+        "account_code": 12, "account_name": 16,
+        "begin_debit": 14, "begin_credit": 14,
+        "current_debit": 14, "current_credit": 14,
+        "end_debit": 14, "end_credit": 14,
+    }, args.json)
+
+    # Balance check
+    totals = {"begin_debit": 0.0, "begin_credit": 0.0, "current_debit": 0.0, "current_credit": 0.0, "end_debit": 0.0, "end_credit": 0.0}
+    for r in result:
+        for k in totals:
+            totals[k] += r[k]
+    balanced = all(
+        abs(totals[f"{p}_debit"] - totals[f"{p}_credit"]) < 0.01
+        for p in ("begin", "current", "end")
+    )
+    label = "试算平衡" if balanced else "试算不平衡"
+    print(f"\n{label} | 期初借={totals['begin_debit']:.2f} 贷={totals['begin_credit']:.2f} | 本期借={totals['current_debit']:.2f} 贷={totals['current_credit']:.2f} | 期末借={totals['end_debit']:.2f} 贷={totals['end_credit']:.2f}")
 
 
 def _cmd_voucher_summary(args):
